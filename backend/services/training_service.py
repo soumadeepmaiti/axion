@@ -324,8 +324,12 @@ class EnhancedTrainingService:
         # Predict
         prob = float(self.trained_model.predict(features, verbose=0)[0][0])
         
-        # Use stored best accuracy from training
+        # Get best accuracy from training history (most reliable source)
         model_accuracy = self.best_accuracy
+        if self.training_status.get('history'):
+            accuracies = [h.get('accuracy', 0) for h in self.training_status['history']]
+            if accuracies:
+                model_accuracy = max(max(accuracies), model_accuracy)
         
         # Calculate confidence based on:
         # 1. How far from 50% (prediction strength)
