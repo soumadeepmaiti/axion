@@ -20,6 +20,28 @@ import numpy as np
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Utility function to sanitize float values for JSON serialization
+def sanitize_value(obj):
+    """Recursively sanitize NaN and Inf values in nested structures"""
+    if isinstance(obj, dict):
+        return {k: sanitize_value(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_value(item) for item in obj]
+    elif isinstance(obj, float):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
+        return obj
+    elif isinstance(obj, np.floating):
+        val = float(obj)
+        if np.isnan(val) or np.isinf(val):
+            return None
+        return val
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.ndarray):
+        return sanitize_value(obj.tolist())
+    return obj
+
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
