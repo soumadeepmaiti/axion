@@ -329,15 +329,14 @@ async def get_training_status():
 
 @api_router.post("/training/start")
 async def start_training(request: TrainingRequest, background_tasks: BackgroundTasks):
-    """Start model training with user-specified date range"""
+    """Start model training with user configuration"""
     try:
         if training_service.training_status['is_training']:
             raise HTTPException(status_code=400, detail="Training already in progress")
         
-        # Reset status
         training_service.reset_status()
         
-        # Fetch training data for specified date range
+        # Fetch training data
         logger.info(f"Fetching data for {request.symbol} from {request.start_date} to {request.end_date}")
         data = await data_pipeline.get_training_data(
             request.symbol,
@@ -350,27 +349,44 @@ async def start_training(request: TrainingRequest, background_tasks: BackgroundT
             raise HTTPException(status_code=400, detail=data['error'])
         
         if len(data['features']) == 0:
-            raise HTTPException(status_code=400, detail="No training data available for specified range")
+            raise HTTPException(status_code=400, detail="No data available for specified range")
         
-        logger.info(f"Got {len(data['features'])} samples for training")
+        # Build config from request
+        config = {
+            "mode": request.mode,
+            "epochs": request.epochs,
+            "batch_size": request.batch_size,
+            "strategies": request.strategies,
+            "num_lstm_layers": request.num_lstm_layers,
+            "lstm_units": request.lstm_units,
+            "num_dense_layers": request.num_dense_layers,
+            "dense_units": request.dense_units,
+            "dropout_rate": request.dropout_rate,
+            "use_attention": request.use_attention,
+            "use_batch_norm": request.use_batch_norm,
+            "learning_rate": request.learning_rate,
+            "sequence_length": request.sequence_length
+        }
+        
+        logger.info(f"Training config: {config}")
         
         # Start training in background
         async def train_task():
             result = await training_service.train_model(
                 features=data['features'],
                 labels=data['labels'],
-                epochs=request.epochs,
-                batch_size=request.batch_size,
+                prices=data.get('prices', np.array([])),
+                config=config,
                 data_info=data['data_info']
             )
-            # Save to database
             doc = {
                 "id": str(uuid.uuid4()),
                 "symbol": request.symbol,
                 "result": result,
                 "history": training_service.training_status['history'],
                 "data_info": data['data_info'],
-                "learned_patterns": training_service.get_learned_patterns(),
+                "config": config,
+                "learned_patterns": training_service._learned_patterns,
                 "created_at": datetime.now(timezone.utc).isoformat()
             }
             await db.training_history.insert_one(doc)
@@ -379,15 +395,28 @@ async def start_training(request: TrainingRequest, background_tasks: BackgroundT
         
         return {
             "status": "started",
-            "message": f"Training started for {request.symbol}",
+            "message": f"Training started in {request.mode} mode",
             "config": {
+                "mode": request.mode,
                 "epochs": request.epochs,
                 "batch_size": request.batch_size,
                 "timeframe": request.timeframe,
+                "strategies": request.strategies,
+                "network": {
+                    "lstm_layers": request.num_lstm_layers,
+                    "dense_layers": request.num_dense_layers,
+                    "attention": request.use_attention
+                },
                 "total_samples": len(data['features']),
                 "date_range": data['data_info']['date_range']
             }
         }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Training start error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
         
     except HTTPException:
         raise
