@@ -120,70 +120,66 @@ class AdvancedDataPipeline:
         return cross_assets
     
     def calculate_technical_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Calculate comprehensive technical indicators"""
+        """Calculate comprehensive technical indicators using ta library"""
         if df.empty:
             return df
         
         df = df.copy()
         
         # Trend Indicators
-        df['sma_10'] = ta.sma(df['close'], length=10)
-        df['sma_20'] = ta.sma(df['close'], length=20)
-        df['sma_50'] = ta.sma(df['close'], length=50)
-        df['sma_100'] = ta.sma(df['close'], length=100)
-        df['sma_200'] = ta.sma(df['close'], length=200)
-        df['ema_12'] = ta.ema(df['close'], length=12)
-        df['ema_26'] = ta.ema(df['close'], length=26)
+        df['sma_10'] = ta.trend.sma_indicator(df['close'], window=10)
+        df['sma_20'] = ta.trend.sma_indicator(df['close'], window=20)
+        df['sma_50'] = ta.trend.sma_indicator(df['close'], window=50)
+        df['sma_100'] = ta.trend.sma_indicator(df['close'], window=100)
+        df['sma_200'] = ta.trend.sma_indicator(df['close'], window=200)
+        df['ema_12'] = ta.trend.ema_indicator(df['close'], window=12)
+        df['ema_26'] = ta.trend.ema_indicator(df['close'], window=26)
         
         # MACD
-        macd = ta.macd(df['close'], fast=12, slow=26, signal=9)
-        if macd is not None:
-            df['macd'] = macd['MACD_12_26_9']
-            df['macd_signal'] = macd['MACDs_12_26_9']
-            df['macd_hist'] = macd['MACDh_12_26_9']
+        macd = ta.trend.MACD(df['close'], window_slow=26, window_fast=12, window_sign=9)
+        df['macd'] = macd.macd()
+        df['macd_signal'] = macd.macd_signal()
+        df['macd_hist'] = macd.macd_diff()
         
         # RSI
-        df['rsi'] = ta.rsi(df['close'], length=14)
-        df['rsi_6'] = ta.rsi(df['close'], length=6)
-        df['rsi_24'] = ta.rsi(df['close'], length=24)
+        df['rsi'] = ta.momentum.rsi(df['close'], window=14)
+        df['rsi_6'] = ta.momentum.rsi(df['close'], window=6)
+        df['rsi_24'] = ta.momentum.rsi(df['close'], window=24)
         
         # Bollinger Bands
-        bbands = ta.bbands(df['close'], length=20, std=2)
-        if bbands is not None:
-            df['bb_upper'] = bbands['BBU_20_2.0']
-            df['bb_middle'] = bbands['BBM_20_2.0']
-            df['bb_lower'] = bbands['BBL_20_2.0']
-            df['bb_width'] = (df['bb_upper'] - df['bb_lower']) / df['bb_middle']
-            df['bb_percent'] = (df['close'] - df['bb_lower']) / (df['bb_upper'] - df['bb_lower'])
+        bb = ta.volatility.BollingerBands(df['close'], window=20, window_dev=2)
+        df['bb_upper'] = bb.bollinger_hband()
+        df['bb_middle'] = bb.bollinger_mavg()
+        df['bb_lower'] = bb.bollinger_lband()
+        df['bb_width'] = bb.bollinger_wband()
+        df['bb_percent'] = bb.bollinger_pband()
         
         # ATR & Volatility
-        df['atr'] = ta.atr(df['high'], df['low'], df['close'], length=14)
+        df['atr'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], window=14)
         df['atr_percent'] = df['atr'] / df['close'] * 100
         
         # Stochastic
-        stoch = ta.stoch(df['high'], df['low'], df['close'], k=14, d=3)
-        if stoch is not None:
-            df['stoch_k'] = stoch['STOCHk_14_3_3']
-            df['stoch_d'] = stoch['STOCHd_14_3_3']
+        stoch = ta.momentum.StochasticOscillator(df['high'], df['low'], df['close'], window=14, smooth_window=3)
+        df['stoch_k'] = stoch.stoch()
+        df['stoch_d'] = stoch.stoch_signal()
         
         # ADX
-        adx = ta.adx(df['high'], df['low'], df['close'], length=14)
-        if adx is not None:
-            df['adx'] = adx['ADX_14']
-            df['di_plus'] = adx['DMP_14']
-            df['di_minus'] = adx['DMN_14']
+        adx = ta.trend.ADXIndicator(df['high'], df['low'], df['close'], window=14)
+        df['adx'] = adx.adx()
+        df['di_plus'] = adx.adx_pos()
+        df['di_minus'] = adx.adx_neg()
         
         # CCI
-        df['cci'] = ta.cci(df['high'], df['low'], df['close'], length=20)
+        df['cci'] = ta.trend.cci(df['high'], df['low'], df['close'], window=20)
         
         # MFI
-        df['mfi'] = ta.mfi(df['high'], df['low'], df['close'], df['volume'], length=14)
+        df['mfi'] = ta.volume.money_flow_index(df['high'], df['low'], df['close'], df['volume'], window=14)
         
         # OBV
-        df['obv'] = ta.obv(df['close'], df['volume'])
+        df['obv'] = ta.volume.on_balance_volume(df['close'], df['volume'])
         
         # VWAP (approximation)
-        df['vwap'] = (df['volume'] * (df['high'] + df['low'] + df['close']) / 3).cumsum() / df['volume'].cumsum()
+        df['vwap'] = ta.volume.volume_weighted_average_price(df['high'], df['low'], df['close'], df['volume'], window=14)
         
         # Price ratios
         df['price_sma20_ratio'] = df['close'] / df['sma_20']
@@ -208,7 +204,7 @@ class AdvancedDataPipeline:
         # Momentum
         df['momentum_10'] = df['close'] - df['close'].shift(10)
         df['momentum_20'] = df['close'] - df['close'].shift(20)
-        df['roc_10'] = (df['close'] - df['close'].shift(10)) / df['close'].shift(10) * 100
+        df['roc_10'] = ta.momentum.roc(df['close'], window=10)
         
         return df
     
