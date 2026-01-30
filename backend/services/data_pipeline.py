@@ -101,33 +101,35 @@ class DataPipeline:
     
     def calculate_technical_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculate technical indicators using ta library"""
-        if df.empty:
+        if df.empty or len(df) < 2:
             return df
             
         df = df.copy()
+        n = len(df)
         
-        # Trend Indicators
-        df['ema_9'] = ta.trend.ema_indicator(df['close'], window=9)
-        df['ema_21'] = ta.trend.ema_indicator(df['close'], window=21)
-        df['ema_50'] = ta.trend.ema_indicator(df['close'], window=50)
-        df['ema_200'] = ta.trend.ema_indicator(df['close'], window=200)
+        # Trend Indicators - use smaller windows if data is limited
+        df['ema_9'] = ta.trend.ema_indicator(df['close'], window=min(9, n))
+        df['ema_21'] = ta.trend.ema_indicator(df['close'], window=min(21, n))
+        df['ema_50'] = ta.trend.ema_indicator(df['close'], window=min(50, n))
+        df['ema_200'] = ta.trend.ema_indicator(df['close'], window=min(200, n))
         
-        # Distance from EMAs (normalized)
-        df['dist_ema_9'] = (df['close'] - df['ema_9']) / df['ema_9'] * 100
-        df['dist_ema_21'] = (df['close'] - df['ema_21']) / df['ema_21'] * 100
-        df['dist_ema_50'] = (df['close'] - df['ema_50']) / df['ema_50'] * 100
-        df['dist_ema_200'] = (df['close'] - df['ema_200']) / df['ema_200'] * 100
+        # Distance from EMAs (normalized) - handle division by zero
+        for col in ['ema_9', 'ema_21', 'ema_50', 'ema_200']:
+            dist_col = f'dist_{col}'
+            df[dist_col] = np.where(df[col] != 0, (df['close'] - df[col]) / df[col] * 100, 0)
         
         # Momentum Indicators
-        df['rsi'] = ta.momentum.rsi(df['close'], window=14)
-        df['macd'] = ta.trend.macd_diff(df['close'])
-        df['stoch_k'] = ta.momentum.stoch(df['high'], df['low'], df['close'], window=14)
-        df['stoch_d'] = ta.momentum.stoch_signal(df['high'], df['low'], df['close'], window=14)
+        window = min(14, n)
+        df['rsi'] = ta.momentum.rsi(df['close'], window=window) if n >= 2 else 50
+        df['macd'] = ta.trend.macd_diff(df['close']) if n >= 26 else 0
+        df['stoch_k'] = ta.momentum.stoch(df['high'], df['low'], df['close'], window=window) if n >= 2 else 50
+        df['stoch_d'] = ta.momentum.stoch_signal(df['high'], df['low'], df['close'], window=window) if n >= 2 else 50
         
         # Volatility Indicators
-        df['atr'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], window=14)
-        df['bb_upper'] = ta.volatility.bollinger_hband(df['close'], window=20)
-        df['bb_lower'] = ta.volatility.bollinger_lband(df['close'], window=20)
+        df['atr'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], window=window) if n >= 2 else 0
+        bb_window = min(20, n)
+        df['bb_upper'] = ta.volatility.bollinger_hband(df['close'], window=bb_window) if n >= 2 else df['close']
+        df['bb_lower'] = ta.volatility.bollinger_lband(df['close'], window=bb_window) if n >= 2 else df['close']
         df['bb_width'] = (df['bb_upper'] - df['bb_lower']) / df['close'] * 100
         
         # Volume Indicators
