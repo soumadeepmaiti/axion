@@ -608,6 +608,10 @@ async def start_backtest(request: BacktestRequest, background_tasks: BackgroundT
         if backtesting_service.is_running:
             raise HTTPException(status_code=400, detail="Backtest already in progress")
         
+        # Check if model is loaded BEFORE starting background task
+        if advanced_training_service.model is None and advanced_training_service.ensemble_model is None:
+            raise HTTPException(status_code=400, detail="No trained model loaded. Please train or load a model first.")
+        
         async def run_backtest_task():
             result = await backtesting_service.run_backtest(
                 symbol=request.symbol,
