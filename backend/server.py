@@ -116,6 +116,8 @@ class TrainingRequest(BaseModel):
     mode: str = "pure_ml"
     # Mathematical strategies to use
     strategies: List[str] = []
+    # Network type: "lstm", "gru", "transformer", "cnn_lstm", "ensemble"
+    network_type: str = "lstm"
     # Network architecture
     num_lstm_layers: int = 2
     lstm_units: List[int] = [128, 64]
@@ -126,6 +128,17 @@ class TrainingRequest(BaseModel):
     use_batch_norm: bool = True
     learning_rate: float = 0.001
     sequence_length: int = 50
+    # Advanced options
+    use_early_stopping: bool = True
+    early_stopping_patience: int = 15
+    lr_schedule: str = "reduce_plateau"  # "cosine", "step", "reduce_plateau"
+    use_walk_forward: bool = False
+    cv_folds: int = 5
+    use_optuna: bool = False
+    optuna_trials: int = 20
+    class_balance_method: str = "class_weight"  # "class_weight", "smote"
+    multi_timeframe: bool = False
+    save_model: bool = True
 
 class SentimentRequest(BaseModel):
     text: str
