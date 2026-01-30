@@ -110,11 +110,12 @@ User wants two training modes:
 
 ## Backlog
 
-### P0 (Critical) - None remaining for MVP
+### P0 (Critical) 
+- Implement Backtesting Framework (run models against historical data, generate PnL/Sharpe Ratio/Max Drawdown reports)
 
 ### P1 (High)
-- Model persistence (save/load trained weights to disk)
-- User-controlled network parameters in API (currently UI only)
+- Verify Model Persistence End-to-End (train → save → restart → load → predict)
+- Time-based trade exit (15 min auto-close)
 - Real Twitter/Reddit API integration for sentiment
 
 ### P2 (Medium)
