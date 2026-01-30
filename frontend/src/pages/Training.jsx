@@ -407,36 +407,45 @@ const Training = () => {
             </Card>
 
             {/* Network Type Selection */}
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-border lg:col-span-2">
               <CardHeader className="pb-2">
                 <CardTitle className="font-mono text-base flex items-center gap-2">
                   <Network className="w-4 h-4 text-primary" />
-                  Network Type
+                  Network Architecture
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {NETWORK_TYPES.map((type) => (
-                  <div
-                    key={type.id}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                      networkType === type.id
-                        ? 'border-primary bg-primary/10 shadow-lg shadow-primary/20'
-                        : 'border-border bg-secondary/30 hover:border-primary/50'
-                    } ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={() => !isTraining && setNetworkType(type.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{type.icon}</span>
-                      <div className="flex-1">
-                        <p className="font-mono text-sm font-semibold">{type.name}</p>
-                        <p className="text-xs text-muted-foreground">{type.description}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {NETWORK_TYPES.map((type) => (
+                    <div
+                      key={type.id}
+                      className={`p-2 rounded-lg border cursor-pointer transition-all ${
+                        networkType === type.id
+                          ? 'border-primary bg-primary/10 shadow-lg shadow-primary/20'
+                          : 'border-border bg-secondary/30 hover:border-primary/50'
+                      } ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={() => !isTraining && setNetworkType(type.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{type.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-mono text-xs font-semibold truncate">{type.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{type.description}</p>
+                        </div>
                       </div>
-                      {networkType === type.id && (
-                        <Badge className="bg-primary">Selected</Badge>
-                      )}
                     </div>
+                  ))}
+                </div>
+                
+                {/* Selected Network Info */}
+                <div className="p-2 bg-primary/10 rounded border border-primary/30">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{NETWORK_TYPES.find(t => t.id === networkType)?.icon}</span>
+                    <span className="font-mono text-sm font-semibold">{NETWORK_TYPES.find(t => t.id === networkType)?.name}</span>
+                    <Badge className="bg-primary text-[10px]">Selected</Badge>
                   </div>
-                ))}
+                  <p className="text-xs text-muted-foreground">{NETWORK_TYPES.find(t => t.id === networkType)?.description}</p>
+                </div>
               </CardContent>
             </Card>
 
