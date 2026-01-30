@@ -43,16 +43,33 @@ User wants two training modes:
 - ✅ **Dual-Mode Training System**:
   - Pure ML Mode: Model learns patterns from raw features
   - Mathematical Modeling Mode: Applies quant strategies (mean reversion, momentum, RSI, MACD, Fibonacci, etc.)
+  - Hybrid Mode: Combines ML with mathematical signals
 - ✅ User-configurable network architecture (LSTM layers, Dense layers, attention, batch norm)
-- ✅ Training with real-time progress tracking
+- ✅ Training with real-time progress tracking (updates every second)
 - ✅ Prediction endpoints with ATR-based TP/SL
 - ✅ JSON sanitization for NaN/Inf values
+- ✅ Historical date range training support
 
 ### Frontend
 - ✅ Dashboard with real-time price charts
-- ✅ Training page with network architecture configuration
-- ✅ Mathematical strategies selection
-- ✅ Training progress visualization (loss/accuracy curves)
+- ✅ **Redesigned Training Page** with:
+  - Dedicated Training Progress section (always visible, not in tabs)
+  - Real-time loss and accuracy curves (updated every second)
+  - Start/Stop training buttons with manual control
+  - Live metrics: Loss, Accuracy, Val Loss, Val Accuracy, Samples
+  - Elapsed time counter
+- ✅ **Network Architecture Section**:
+  - Network Type selector (LSTM, GRU, Transformer coming soon, CNN+LSTM coming soon)
+  - LSTM Layers configuration with unit sliders
+  - Dense Layers configuration with unit sliders
+  - Architecture summary display
+- ✅ **Hyperparameters Section**:
+  - Dropout Rate, Learning Rate, Sequence Length sliders
+  - Attention Mechanism toggle
+  - Batch Normalization toggle
+- ✅ Mathematical strategies selection (for Mathematical/Hybrid modes)
+- ✅ Historical Date Range picker for training on past data
+- ✅ Training History display
 - ✅ Predictions history page
 
 ## Core Requirements - Status
