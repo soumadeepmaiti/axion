@@ -255,16 +255,54 @@ Provide your assessment as JSON with sentiment (-1 to 1) and confidence (0 to 1)
         return results
     
     async def get_aggregate_sentiment(self, symbol: str) -> Dict:
-        """Get aggregated sentiment for a symbol (using mock data for now)"""
+        """Get aggregated sentiment for a symbol (using real CryptoPanic data)"""
         await self.initialize()
         
-        # Use mock data - user will add real API keys later
+        # Map symbol to CryptoPanic currency codes
+        currency_map = {
+            "BTC/USDT": ["BTC"],
+            "ETH/USDT": ["ETH"],
+            "BTC": ["BTC"],
+            "ETH": ["ETH"]
+        }
+        currencies = currency_map.get(symbol, ["BTC"])
+        
+        # Fetch real news from CryptoPanic
+        news_posts = await cryptopanic_client.fetch_news(currencies=currencies)
+        
         sentiments = []
-        for mock in MOCK_SENTIMENTS:
-            result = await self.analyze(mock['text'], use_llm=False)
-            result['source'] = mock['source']
-            result['text'] = mock['text']
-            sentiments.append(result)
+        
+        if news_posts:
+            # Process real news
+            for post in news_posts[:10]:  # Limit to 10 most recent
+                title = post.get("title", "")
+                
+                # Get sentiment from votes or analyze with FinBERT
+                vote_sentiment = cryptopanic_client.extract_sentiment_from_votes(post)
+                finbert_result = await self.analyze(title, use_llm=False)
+                
+                # Combine vote sentiment and FinBERT analysis
+                combined_sentiment = (vote_sentiment * 0.4 + finbert_result['sentiment'] * 0.6)
+                
+                sentiments.append({
+                    "text": title,
+                    "source": post.get("source", {}).get("title", "CryptoPanic"),
+                    "url": post.get("url", ""),
+                    "sentiment": round(combined_sentiment, 4),
+                    "confidence": finbert_result['confidence'],
+                    "vote_sentiment": vote_sentiment,
+                    "published_at": post.get("published_at", ""),
+                    "kind": post.get("kind", "news")
+                })
+            logger.info(f"Fetched {len(sentiments)} real news items from CryptoPanic")
+        else:
+            # Fallback to mock data if API fails
+            logger.warning("Using mock sentiment data (CryptoPanic unavailable)")
+            for mock in MOCK_SENTIMENTS:
+                result = await self.analyze(mock['text'], use_llm=False)
+                result['source'] = mock['source']
+                result['text'] = mock['text']
+                sentiments.append(result)
         
         if not sentiments:
             return {
@@ -272,7 +310,8 @@ Provide your assessment as JSON with sentiment (-1 to 1) and confidence (0 to 1)
                 "aggregate_confidence": 0,
                 "sample_count": 0,
                 "sources": [],
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "data_source": "none"
             }
         
         avg_sentiment = sum(s['sentiment'] for s in sentiments) / len(sentiments)
@@ -284,7 +323,8 @@ Provide your assessment as JSON with sentiment (-1 to 1) and confidence (0 to 1)
             "aggregate_confidence": round(avg_confidence, 4),
             "sample_count": len(sentiments),
             "samples": sentiments[:5],  # Return first 5 samples
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "data_source": "cryptopanic" if news_posts else "mock"
         }
 
 
