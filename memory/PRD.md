@@ -36,61 +36,56 @@ User wants two training modes:
 
 ## What's Been Implemented (Jan 30, 2026)
 
-### Backend - Advanced Training System
-- ✅ FastAPI server with CORS middleware
-- ✅ CCXT Binance US integration for live market data
-- ✅ **Advanced Data Pipeline** (`advanced_data_pipeline.py`):
-  - Multi-timeframe data support (5m, 15m, 1h, 4h, 1d)
-  - Extended historical data (up to 2 years, 50,000+ samples)
-  - 50+ technical indicators using `ta` library
-  - Market Regime Detection (Bull/Bear/Sideways)
-  - Cross-Asset Correlation (BTC dominance, ETH/BTC ratio)
-  - GARCH Volatility Features
-  - Mock Order Book Features (bid-ask spread, order flow - ready for real API)
-  - Mock On-Chain Metrics (active addresses, exchange flows - ready for real API)
-- ✅ **Advanced Model Architectures** (`advanced_models.py`):
-  - LSTM (Bi-directional with attention)
-  - GRU (Bi-directional with attention)
-  - Transformer (Multi-head attention)
-  - CNN + LSTM Hybrid
-  - Ensemble (LSTM + XGBoost + RandomForest)
-- ✅ **Advanced Training Service** (`advanced_training_service.py`):
-  - Walk-Forward Validation (time-series CV)
-  - Class Balancing (SMOTE or class weights)
-  - Optuna Hyperparameter Search
-  - Learning Rate Scheduling (cosine, step, reduce_plateau)
-  - Optional Early Stopping with configurable patience
-  - **Model Persistence** (save/load trained models to disk)
-- ✅ **API Endpoints**:
-  - `/api/training/advanced/start` - Start advanced training
-  - `/api/training/advanced/status` - Get training status
-  - `/api/models/saved` - List saved models
-  - `/api/models/load` - Load saved model
+### Backend - Complete Advanced Trading System
 
-### Frontend - Complete Training UI
-- ✅ Dashboard with real-time price charts
-- ✅ **Comprehensive Training Page** with 4 tabs:
-  1. **Configuration Tab**:
-     - Training Mode (Pure ML / Mathematical / Hybrid)
-     - Network Type selector (LSTM / GRU / Transformer / CNN+LSTM / Ensemble)
-     - Network Layers configuration (LSTM/GRU layers, Dense layers with unit sliders)
-     - Hyperparameters (Dropout, Learning Rate, Sequence Length, Attention, BatchNorm)
-     - Architecture summary display
-  2. **Advanced Options Tab**:
-     - Early Stopping toggle with patience slider
-     - Learning Rate Schedule dropdown (Reduce on Plateau / Cosine / Step)
-     - Multi-Timeframe toggle
-     - Walk-Forward Validation toggle with CV folds
-     - Optuna Hyperparameter Search toggle with trials slider
-     - Class Balancing method (Class Weights / SMOTE)
-  3. **Saved Models Tab**:
-     - List of saved models with accuracy and metadata
-     - Load Model button for each saved model
-  4. **History Tab**:
-     - Training history with accuracy scores
-- ✅ Start/Stop Training buttons
-- ✅ Real-time Training Progress with loss/accuracy charts
-- ✅ Predictions history page
+#### Data Pipeline - 99 Features (191 total columns)
+- ✅ **Market Microstructure** (MOCK - ready for real APIs):
+  - Funding Rate (perpetual futures sentiment)
+  - Open Interest changes
+  - Liquidation data (long/short)
+  - Exchange inflow/outflow
+- ✅ **Cross-Market Signals** (MOCK - ready for real APIs):
+  - S&P 500 correlation
+  - DXY (Dollar Index) inverse correlation
+  - Gold correlation
+  - Fear & Greed Index
+- ✅ **Time-Based Features**:
+  - Trading sessions (Asian/EU/US)
+  - Day of week, Month seasonality
+  - Bitcoin halving cycle (days since/until halving)
+- ✅ **Advanced Technical Analysis**:
+  - Wyckoff accumulation/distribution
+  - Elliott Wave patterns (swing detection, Fibonacci)
+  - Ichimoku Cloud (all 5 lines, cloud signals)
+  - Volume Profile (POC, VAH, VAL)
+- ✅ **Whale Tracking** (MOCK - ready for real APIs):
+  - Whale transaction count
+  - Whale buy/sell volume
+  - Whale exchange deposits/withdrawals
+
+#### Model Architectures - 9 Types
+1. **LSTM** - Bi-directional with attention
+2. **GRU** - Gated Recurrent Unit
+3. **Transformer** - Multi-head attention
+4. **CNN + LSTM** - Convolutional + Recurrent hybrid
+5. **Ensemble** - LSTM + XGBoost + RandomForest
+6. **TFT** - Temporal Fusion Transformer (Google's SOTA)
+7. **Multi-Task** - Predicts direction + volatility + magnitude
+8. **GNN** - Graph Neural Network for asset relationships
+9. **Multi-TF Attention** - Separate attention per timeframe
+
+#### Training Features
+- ✅ Walk-Forward Validation (time-series CV)
+- ✅ Class Balancing (SMOTE or class weights)
+- ✅ Optuna Hyperparameter Search
+- ✅ Learning Rate Scheduling
+- ✅ Model Persistence (save/load)
+
+### Frontend - Complete UI
+- ✅ **9 Network Types** selectable via UI
+- ✅ **Advanced Options Tab** with all training features
+- ✅ **Saved Models Tab** with load functionality
+- ✅ **Real-time Training Progress** with charts
 
 ## Core Requirements - Status
 | Requirement | Status |
