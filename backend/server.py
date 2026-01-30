@@ -156,6 +156,21 @@ class ModelConfigUpdate(BaseModel):
     dense_units: Optional[int] = None
     dropout_rate: Optional[float] = None
 
+class BacktestRequest(BaseModel):
+    symbol: str = "BTC/USDT"
+    timeframe: str = "1h"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    initial_capital: float = 10000.0
+    position_size: float = 0.1  # 10% of capital per trade
+    use_stop_loss: bool = True
+    stop_loss_pct: float = 0.02  # 2%
+    use_take_profit: bool = True
+    take_profit_pct: float = 0.04  # 4%
+    max_hold_time: int = 24  # hours (0 = no limit)
+    min_confidence: float = 0.6  # minimum prediction confidence
+    commission: float = 0.001  # 0.1% per trade
+
 # ============== Health & Status Endpoints ==============
 
 @api_router.get("/")
