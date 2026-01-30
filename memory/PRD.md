@@ -149,5 +149,14 @@ User wants two training modes:
 | /api/market/latest/{symbol} | GET | Latest price |
 | /api/predict | POST | Generate prediction |
 | /api/training/start | POST | Start training (mode, config) |
+| /api/training/advanced/start | POST | Start advanced training |
 | /api/training/status | GET | Training progress |
+| /api/training/advanced/status | GET | Advanced training progress |
+| /api/models/saved | GET | List saved models |
+| /api/models/load | POST | Load a saved model |
+| /api/backtest/start | POST | Start backtest (requires loaded model) |
+| /api/backtest/status | GET | Get backtest progress |
+| /api/backtest/result | GET | Get backtest results |
+| /api/backtest/stop | POST | Stop running backtest |
+| /api/backtest/history | GET | Get backtest history |
 | /api/dashboard/stats | GET | Dashboard statistics |
