@@ -7,7 +7,7 @@ import numpy as np
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Tuple, Optional
 from sklearn.preprocessing import RobustScaler
-import pandas_ta as ta
+import ta
 import logging
 import asyncio
 
