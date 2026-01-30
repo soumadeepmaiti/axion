@@ -1,0 +1,141 @@
+{
+  "design_system": {
+    "identity": {
+      "name": "E1: The Anti-AI Designer",
+      "core_philosophy": "Fusion over Imitation. Emotion First. Content is King.",
+      "vibe": "Cyber-Finance, Precision, High-Tech, Dark Neon"
+    },
+    "typography": {
+      "font_family": {
+        "headings": "JetBrains Mono, monospace",
+        "body": "Manrope, sans-serif"
+      },
+      "scale": {
+        "h1": "text-4xl md:text-5xl font-bold tracking-tight",
+        "h2": "text-3xl md:text-4xl font-semibold tracking-tight",
+        "h3": "text-2xl font-medium tracking-tight",
+        "body": "text-base leading-relaxed",
+        "small": "text-sm text-muted-foreground",
+        "mono_label": "font-mono text-xs uppercase tracking-widest text-muted-foreground"
+      },
+      "imports": [
+        "@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Manrope:wght@400;500;700&display=swap');"
+      ]
+    },
+    "colors": {
+      "palette": {
+        "background": "#050505",
+        "foreground": "#EDEDED",
+        "card": "#0A0A0A",
+        "card_foreground": "#EDEDED",
+        "popover": "#0A0A0A",
+        "popover_foreground": "#EDEDED",
+        "primary": "#00E5FF",
+        "primary_foreground": "#000000",
+        "secondary": "#1F1F1F",
+        "secondary_foreground": "#EDEDED",
+        "muted": "#1F1F1F",
+        "muted_foreground": "#A1A1AA",
+        "accent": "#1F1F1F",
+        "accent_foreground": "#EDEDED",
+        "destructive": "#FF2E55",
+        "destructive_foreground": "#FFFFFF",
+        "border": "#1F1F1F",
+        "input": "#1F1F1F",
+        "ring": "#00E5FF",
+        "chart_1": "#00E5FF",
+        "chart_2": "#FF2E55",
+        "chart_3": "#FFD600",
+        "chart_4": "#B026FF",
+        "chart_5": "#00FF94"
+      },
+      "usage": {
+        "buy_action": "#00E5FF",
+        "sell_action": "#FF2E55",
+        "warning": "#FFD600",
+        "success": "#00FF94",
+        "neutral_grid": "#1F1F1F"
+      }
+    },
+    "visual_enhancers": {
+      "borders": "1px solid #1F1F1F",
+      "active_border": "1px solid #00E5FF",
+      "glassmorphism": "bg-black/60 backdrop-blur-xl border-white/10",
+      "shadows": {
+        "glow_primary": "0 0 20px -5px rgba(0, 229, 255, 0.3)",
+        "glow_danger": "0 0 20px -5px rgba(255, 46, 85, 0.3)"
+      },
+      "gradients": {
+        "subtle_mesh": "radial-gradient(circle at 50% 50%, #111 0%, #050505 100%)"
+      }
+    },
+    "layout": {
+      "grid_system": "Bento Grid (Mode B: High Density)",
+      "spacing": {
+        "container_padding": "p-6 md:p-8",
+        "gap": "gap-4 md:gap-6",
+        "section_spacing": "py-12"
+      },
+      "structure": {
+        "sidebar_width": "w-64",
+        "topbar_height": "h-16"
+      }
+    },
+    "components": {
+      "buttons": {
+        "primary": "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(0,229,255,0.3)] transition-all duration-300",
+        "outline": "border border-input bg-background hover:bg-accent hover:text-accent-foreground hover:border-primary/50 transition-all duration-300",
+        "ghost": "hover:bg-accent hover:text-accent-foreground"
+      },
+      "cards": {
+        "base": "bg-card text-card-foreground rounded-xl border border-border shadow-sm",
+        "interactive": "hover:border-primary/50 hover:shadow-[0_0_20px_-10px_rgba(0,229,255,0.2)] transition-all duration-300"
+      },
+      "inputs": {
+        "base": "bg-input/50 border-input focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
+      }
+    },
+    "motion": {
+      "libraries": ["framer-motion"],
+      "transitions": {
+        "default": "transition-all duration-200 ease-in-out",
+        "smooth": "transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)"
+      },
+      "animations": {
+        "fade_in": {
+          "initial": { "opacity": 0, "y": 10 },
+          "animate": { "opacity": 1, "y": 0 },
+          "transition": { "duration": 0.4 }
+        }
+      }
+    },
+    "assets": {
+      "icons": "lucide-react",
+      "charts": "recharts",
+      "image_urls": {
+        "hero_background": "https://images.unsplash.com/photo-1768327239584-e97d004f1830?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwxfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwbmV1cmFsJTIwbmV0d29yayUyMHZpc3VhbGl6YXRpb24lMjBkYXJrJTIwYWJzdHJhY3R8ZW58MHx8fHwxNzY5Nzc1NTgzfDA&ixlib=rb-4.1.0&q=85",
+        "user_avatar": "https://images.unsplash.com/photo-1580046939256-c377c5b099f1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHwxfHxjeWJlcnB1bmslMjBmdXR1cmlzdGljJTIwcG9ydHJhaXQlMjBtYW4lMjBwcm9maWxlfGVufDB8fHx8MTc2OTc3NTU5N3ww&ixlib=rb-4.1.0&q=85",
+        "chart_placeholder": "https://images.unsplash.com/photo-1649848964263-2666b0c355a6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzh8MHwxfHNlYXJjaHwxfHxiaXRjb2luJTIwZXRoZXJldW0lMjBjcnlwdG8lMjB0cmFkaW5nJTIwY2hhcnQlMjBkYXJrJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3Njk3NzU1ODB8MA&ixlib=rb-4.1.0&q=85"
+      }
+    },
+    "instructions_to_main_agent": [
+      "CRITICAL: Implement the 'Electric & Neon' color palette exactly as defined. Do not revert to default Shadcn slate/gray.",
+      "CRITICAL: Use 'JetBrains Mono' for all headings and data values (prices, percentages). Use 'Manrope' for UI labels and body text.",
+      "CRITICAL: Ensure all charts use the defined chart colors (chart_1 for primary data, chart_2 for secondary/danger).",
+      "CRITICAL: Add 'data-testid' to all interactive elements.",
+      "LAYOUT: Use a fixed sidebar layout with a top header. The main content area should use a responsive grid.",
+      "VISUALS: Avoid flat backgrounds. Use subtle gradients or noise textures where possible to add depth.",
+      "INTERACTION: Add hover states to all rows in data tables and all cards.",
+      "THEME: Force Dark Mode. Do not implement a light mode toggle unless explicitly requested by user (problem statement says 'Dark theme preferred').",
+      "COMPONENTS: Customize Shadcn components to match the 'Cyber-Finance' aesthetic (sharper corners, glowing borders on focus)."
+    ],
+    "universal_guidelines": [
+      "Avoid 'AI slop' - generic centered layouts and gradients.",
+      "Create depth through z-index and glassmorphism.",
+      "No universal 'transition: all'.",
+      "No centered app container.",
+      "Use 'sonner' for toasts.",
+      "Export components as named exports."
+    ]
+  }
+}
