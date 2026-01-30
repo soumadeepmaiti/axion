@@ -36,40 +36,47 @@ User wants two training modes:
 
 ## What's Been Implemented (Jan 30, 2026)
 
-### Backend
+### Backend - Advanced Training System
 - ✅ FastAPI server with CORS middleware
 - ✅ CCXT Binance US integration for live market data
-- ✅ Multi-timeframe data pipeline with 28 technical indicators
-- ✅ **Dual-Mode Training System**:
-  - Pure ML Mode: Model learns patterns from raw features
-  - Mathematical Modeling Mode: Applies quant strategies (mean reversion, momentum, RSI, MACD, Fibonacci, etc.)
-  - Hybrid Mode: Combines ML with mathematical signals
-- ✅ User-configurable network architecture (LSTM layers, Dense layers, attention, batch norm)
-- ✅ Training with real-time progress tracking (updates every second)
-- ✅ Prediction endpoints with ATR-based TP/SL
-- ✅ JSON sanitization for NaN/Inf values
-- ✅ Historical date range training support
+- ✅ **Advanced Data Pipeline** (`advanced_data_pipeline.py`):
+  - Multi-timeframe data support (5m, 15m, 1h, 4h, 1d)
+  - Extended historical data (up to 2 years)
+  - 50+ technical indicators using `ta` library
+  - Market Regime Detection (Bull/Bear/Sideways)
+  - Cross-Asset Correlation (BTC dominance, ETH/BTC ratio)
+  - GARCH Volatility Features
+  - Mock Order Book Features (bid-ask spread, order flow - ready for real API)
+  - Mock On-Chain Metrics (active addresses, exchange flows - ready for real API)
+- ✅ **Advanced Model Architectures** (`advanced_models.py`):
+  - LSTM (Bi-directional with attention)
+  - GRU (Bi-directional with attention)
+  - Transformer (Multi-head attention)
+  - CNN + LSTM Hybrid
+  - Ensemble (LSTM + XGBoost + RandomForest)
+  - Late Fusion support for multi-timeframe
+- ✅ **Advanced Training Service** (`advanced_training_service.py`):
+  - Walk-Forward Validation (time-series CV)
+  - Class Balancing (SMOTE or class weights)
+  - Optuna Hyperparameter Search
+  - Learning Rate Scheduling (cosine, step, reduce_plateau)
+  - Optional Early Stopping
+  - **Model Persistence** (save/load trained models)
+- ✅ **API Endpoints**:
+  - `/api/training/advanced/start` - Start advanced training
+  - `/api/training/advanced/status` - Get training status
+  - `/api/models/saved` - List saved models
+  - `/api/models/load` - Load saved model
 
 ### Frontend
 - ✅ Dashboard with real-time price charts
-- ✅ **Redesigned Training Page** with:
-  - Dedicated Training Progress section (always visible, not in tabs)
-  - Real-time loss and accuracy curves (updated every second)
-  - Start/Stop training buttons with manual control
-  - Live metrics: Loss, Accuracy, Val Loss, Val Accuracy, Samples
-  - Elapsed time counter
-- ✅ **Network Architecture Section**:
-  - Network Type selector (LSTM, GRU, Transformer coming soon, CNN+LSTM coming soon)
-  - LSTM Layers configuration with unit sliders
-  - Dense Layers configuration with unit sliders
-  - Architecture summary display
-- ✅ **Hyperparameters Section**:
-  - Dropout Rate, Learning Rate, Sequence Length sliders
-  - Attention Mechanism toggle
-  - Batch Normalization toggle
-- ✅ Mathematical strategies selection (for Mathematical/Hybrid modes)
-- ✅ Historical Date Range picker for training on past data
-- ✅ Training History display
+- ✅ **Training Page** with:
+  - Network Type selector (LSTM, GRU, Transformer, CNN+LSTM, Ensemble)
+  - Network Layers configuration
+  - Hyperparameters configuration
+  - Start/Stop training buttons
+  - Real-time training progress
+  - Training history
 - ✅ Predictions history page
 
 ## Core Requirements - Status
