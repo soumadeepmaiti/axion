@@ -1,12 +1,12 @@
 """
-Enhanced Training Service with Full Data Training and Mathematical Modeling
+Pure ML Training Service - Model Discovers Its Own Patterns
+No imposed mathematical conditions - learns from data
 """
 import numpy as np
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
 import asyncio
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,20 @@ except ImportError:
     TF_AVAILABLE = False
 
 
-class EnhancedTrainingService:
-    """Handles comprehensive model training with all historical data"""
+class PureMLTrainingService:
+    """Training service that lets model discover patterns from data"""
+    
+    FEATURE_NAMES = [
+        'open', 'high', 'low', 'close', 'volume',
+        'return_1', 'return_5', 'return_10', 'return_20',
+        'volatility_10', 'volatility_20',
+        'volume_change', 'volume_ma_ratio',
+        'price_ma5_ratio', 'price_ma10_ratio', 'price_ma20_ratio', 'price_ma50_ratio', 'price_ma100_ratio',
+        'rsi_14', 'rsi_7', 'macd', 'stoch',
+        'atr_ratio', 'bb_position', 'bb_width',
+        'body_ratio', 'upper_shadow', 'lower_shadow',
+        'adx'
+    ]
     
     def __init__(self):
         self.training_status = {
@@ -33,14 +45,14 @@ class EnhancedTrainingService:
             "end_time": None,
             "error": None,
             "data_info": None,
-            "math_analysis": None
+            "learned_patterns": None
         }
-        self.training_task = None
-        self.best_accuracy = 0.5  # Store best accuracy achieved
-        self.trained_model = None  # Store trained model
+        self.trained_model = None
+        self.best_accuracy = 0.5
+        self.feature_importance = {}
         
     def reset_status(self):
-        """Reset training status"""
+        """Reset training status (keeps model and learned patterns)"""
         self.training_status = {
             "is_training": False,
             "current_epoch": 0,
@@ -52,13 +64,14 @@ class EnhancedTrainingService:
             "end_time": None,
             "error": None,
             "data_info": None,
-            "math_analysis": None
+            "learned_patterns": self.training_status.get("learned_patterns")
         }
-        # Don't reset best_accuracy or trained_model - keep them for predictions
         
     def get_status(self) -> Dict:
-        """Get current training status"""
-        return self.training_status.copy()
+        """Get current training status with learned patterns"""
+        status = self.training_status.copy()
+        status["learned_patterns"] = self.get_learned_patterns()
+        return status
     
     def prepare_sequences(
         self,
@@ -67,7 +80,7 @@ class EnhancedTrainingService:
         sequence_length: int = 50,
         test_split: float = 0.2
     ) -> Dict:
-        """Prepare sequential data for LSTM training"""
+        """Prepare sequential data for LSTM"""
         
         if len(features) < sequence_length + 10:
             return {"error": f"Not enough data. Need at least {sequence_length + 10} samples, got {len(features)}"}
@@ -82,12 +95,10 @@ class EnhancedTrainingService:
         X = np.array(X)
         y = np.array(y)
         
-        # Ensure same length
         min_len = min(len(X), len(y))
         X = X[:min_len]
         y = y[:min_len]
         
-        # Split data
         split_idx = int(len(X) * (1 - test_split))
         
         return {
@@ -102,73 +113,172 @@ class EnhancedTrainingService:
             "feature_dim": X.shape[2] if len(X.shape) > 2 else features.shape[1]
         }
     
-    def build_model(self, input_shape: tuple, model_config: Dict = None) -> keras.Model:
-        """Build a comprehensive LSTM model for price prediction"""
+    def build_model(self, input_shape: tuple) -> keras.Model:
+        """Build LSTM model - learns patterns from data"""
         
-        config = model_config or {
-            "lstm_units_1": 128,
-            "lstm_units_2": 64,
-            "dense_units": 32,
-            "dropout_rate": 0.3
-        }
+        inputs = keras.layers.Input(shape=input_shape, name='input')
         
-        inputs = keras.layers.Input(shape=input_shape)
-        
-        # First LSTM layer with attention
+        # First LSTM layer
         x = keras.layers.Bidirectional(
-            keras.layers.LSTM(config["lstm_units_1"], return_sequences=True)
+            keras.layers.LSTM(128, return_sequences=True, name='lstm_1')
         )(inputs)
-        x = keras.layers.Dropout(config["dropout_rate"])(x)
+        x = keras.layers.Dropout(0.3)(x)
         
-        # Attention mechanism
-        attention = keras.layers.Dense(1, activation='tanh')(x)
+        # Attention mechanism - model learns what to focus on
+        attention = keras.layers.Dense(1, activation='tanh', name='attention_dense')(x)
         attention = keras.layers.Flatten()(attention)
-        attention = keras.layers.Activation('softmax')(attention)
-        attention = keras.layers.RepeatVector(config["lstm_units_1"] * 2)(attention)
+        attention = keras.layers.Activation('softmax', name='attention_weights')(attention)
+        attention = keras.layers.RepeatVector(256)(attention)
         attention = keras.layers.Permute([2, 1])(attention)
-        x = keras.layers.Multiply()([x, attention])
+        x = keras.layers.Multiply(name='attention_applied')([x, attention])
         
-        # Second LSTM layer
+        # Second LSTM
         x = keras.layers.Bidirectional(
-            keras.layers.LSTM(config["lstm_units_2"], return_sequences=False)
+            keras.layers.LSTM(64, return_sequences=False, name='lstm_2')
         )(x)
         x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.Dropout(config["dropout_rate"])(x)
+        x = keras.layers.Dropout(0.3)(x)
         
-        # Dense layers
-        x = keras.layers.Dense(config["dense_units"], activation='relu')(x)
-        x = keras.layers.Dropout(config["dropout_rate"] / 2)(x)
+        # Dense layers - model learns feature combinations
+        x = keras.layers.Dense(64, activation='relu', name='dense_1')(x)
+        x = keras.layers.Dropout(0.2)(x)
+        x = keras.layers.Dense(32, activation='relu', name='dense_2')(x)
         
         # Output
-        outputs = keras.layers.Dense(1, activation='sigmoid')(x)
+        outputs = keras.layers.Dense(1, activation='sigmoid', name='output')(x)
         
         model = keras.Model(inputs=inputs, outputs=outputs)
         
         model.compile(
             optimizer=keras.optimizers.Adam(learning_rate=0.001),
             loss='binary_crossentropy',
-            metrics=['accuracy', keras.metrics.AUC(name='auc'), keras.metrics.Precision(), keras.metrics.Recall()]
+            metrics=['accuracy', keras.metrics.AUC(name='auc')]
         )
         
         return model
     
-    async def train_full_model(
+    def extract_learned_patterns(self, model: keras.Model, X_sample: np.ndarray) -> Dict:
+        """Extract what patterns the model has learned"""
+        patterns = {
+            "feature_importance": {},
+            "learned_weights": {},
+            "model_equation": None
+        }
+        
+        if model is None:
+            return patterns
+            
+        try:
+            # Get dense layer weights to understand feature importance
+            for layer in model.layers:
+                if 'dense' in layer.name and hasattr(layer, 'get_weights'):
+                    weights = layer.get_weights()
+                    if len(weights) > 0:
+                        w = weights[0]
+                        patterns["learned_weights"][layer.name] = {
+                            "shape": list(w.shape),
+                            "mean": float(np.mean(w)),
+                            "std": float(np.std(w)),
+                            "max": float(np.max(w)),
+                            "min": float(np.min(w))
+                        }
+            
+            # Calculate feature importance using gradient-based method
+            if len(X_sample) > 0:
+                importance = self._calculate_feature_importance(model, X_sample[:100])
+                patterns["feature_importance"] = importance
+            
+            # Generate model equation representation
+            patterns["model_equation"] = self._generate_equation_string(patterns)
+            
+        except Exception as e:
+            logger.error(f"Error extracting patterns: {e}")
+            
+        return patterns
+    
+    def _calculate_feature_importance(self, model: keras.Model, X_sample: np.ndarray) -> Dict:
+        """Calculate feature importance using permutation"""
+        importance = {}
+        
+        try:
+            # Get baseline prediction
+            baseline_pred = model.predict(X_sample, verbose=0)
+            baseline_mean = np.mean(baseline_pred)
+            
+            # For each feature, permute and measure impact
+            n_features = X_sample.shape[2]
+            
+            for i in range(min(n_features, len(self.FEATURE_NAMES))):
+                X_permuted = X_sample.copy()
+                # Shuffle this feature across all samples
+                np.random.shuffle(X_permuted[:, :, i])
+                
+                permuted_pred = model.predict(X_permuted, verbose=0)
+                permuted_mean = np.mean(permuted_pred)
+                
+                # Importance = how much prediction changed
+                imp = abs(baseline_mean - permuted_mean)
+                feature_name = self.FEATURE_NAMES[i] if i < len(self.FEATURE_NAMES) else f"feature_{i}"
+                importance[feature_name] = round(float(imp), 6)
+            
+            # Normalize to percentages
+            total = sum(importance.values())
+            if total > 0:
+                importance = {k: round(v / total * 100, 2) for k, v in importance.items()}
+            
+            # Sort by importance
+            importance = dict(sorted(importance.items(), key=lambda x: x[1], reverse=True))
+            
+        except Exception as e:
+            logger.error(f"Error calculating feature importance: {e}")
+            
+        return importance
+    
+    def _generate_equation_string(self, patterns: Dict) -> str:
+        """Generate a human-readable equation from learned weights"""
+        if not patterns.get("feature_importance"):
+            return "P(up) = σ(LSTM(X) · W + b)"
+        
+        # Get top 5 features
+        top_features = list(patterns["feature_importance"].items())[:5]
+        
+        if not top_features:
+            return "P(up) = σ(LSTM(X) · W + b)"
+        
+        # Build equation string
+        terms = []
+        for feature, importance in top_features:
+            coef = importance / 100
+            terms.append(f"{coef:.2f}·{feature}")
+        
+        equation = f"P(up) = σ({' + '.join(terms)} + ...)"
+        return equation
+    
+    def get_learned_patterns(self) -> Dict:
+        """Get the patterns learned by the model"""
+        if not hasattr(self, '_learned_patterns') or self._learned_patterns is None:
+            return {
+                "feature_importance": {},
+                "model_equation": "Model not trained yet",
+                "top_signals": []
+            }
+        return self._learned_patterns
+    
+    async def train_model(
         self,
         features: np.ndarray,
         labels: np.ndarray,
         epochs: int = 100,
         batch_size: int = 32,
         sequence_length: int = 50,
-        data_info: Dict = None,
-        math_analysis: Dict = None
+        data_info: Dict = None
     ) -> Dict:
-        """Train model with all available data"""
+        """Train model - it discovers patterns from data"""
         
         self.training_status["is_training"] = True
         self.training_status["total_epochs"] = epochs
         self.training_status["start_time"] = datetime.now(timezone.utc).isoformat()
         self.training_status["data_info"] = data_info
-        self.training_status["math_analysis"] = math_analysis
         
         # Prepare sequences
         training_data = self.prepare_sequences(features, labels, sequence_length)
@@ -178,7 +288,7 @@ class EnhancedTrainingService:
             self.training_status["error"] = training_data["error"]
             return training_data
         
-        logger.info(f"Training with {training_data['train_samples']} samples, validating with {training_data['val_samples']}")
+        logger.info(f"Training with {training_data['train_samples']} samples")
         
         if not TF_AVAILABLE:
             # Mock training
@@ -199,14 +309,14 @@ class EnhancedTrainingService:
                     "val_accuracy": self.training_status["current_accuracy"] * 0.95
                 })
             
+            self.best_accuracy = self.training_status["current_accuracy"]
             self.training_status["is_training"] = False
             self.training_status["end_time"] = datetime.now(timezone.utc).isoformat()
             
             return {
                 "status": "completed",
                 "message": "Mock training completed",
-                "final_accuracy": self.training_status["current_accuracy"],
-                "samples_trained": training_data["train_samples"]
+                "final_accuracy": self.training_status["current_accuracy"]
             }
         
         try:
@@ -216,7 +326,7 @@ class EnhancedTrainingService:
             
             logger.info(f"Model built with input shape: {input_shape}")
             
-            # Custom callback for progress
+            # Progress callback
             class ProgressCallback(keras.callbacks.Callback):
                 def __init__(self, service):
                     super().__init__()
@@ -262,30 +372,24 @@ class EnhancedTrainingService:
                 verbose=1
             )
             
-            # Save model reference
+            # Save model
             self.trained_model = model
-            
-            # Save best accuracy achieved
             self.best_accuracy = max(history.history.get('accuracy', [0.5]))
+            
+            # Extract learned patterns
+            self._learned_patterns = self.extract_learned_patterns(model, training_data["X_train"])
+            self.training_status["learned_patterns"] = self._learned_patterns
             
             self.training_status["is_training"] = False
             self.training_status["end_time"] = datetime.now(timezone.utc).isoformat()
             
-            final_metrics = {
-                "final_accuracy": round(history.history.get('accuracy', [0])[-1], 4),
-                "final_loss": round(history.history.get('loss', [0])[-1], 4),
-                "best_val_accuracy": round(max(history.history.get('val_accuracy', [0])), 4),
-                "best_auc": round(max(history.history.get('auc', [0])), 4),
-                "epochs_trained": len(history.history.get('loss', [])),
-                "samples_trained": training_data["train_samples"],
-                "best_accuracy": round(self.best_accuracy, 4)
-            }
-            
-            logger.info(f"Training completed: {final_metrics}")
-            
             return {
                 "status": "completed",
-                **final_metrics
+                "final_accuracy": round(history.history.get('accuracy', [0])[-1], 4),
+                "final_loss": round(history.history.get('loss', [0])[-1], 4),
+                "best_accuracy": round(self.best_accuracy, 4),
+                "epochs_trained": len(history.history.get('loss', [])),
+                "learned_patterns": self._learned_patterns
             }
             
         except Exception as e:
@@ -295,40 +399,29 @@ class EnhancedTrainingService:
             logger.error(f"Training error: {e}")
             return {"status": "error", "error": str(e)}
     
-    def stop_training(self):
-        """Stop training"""
-        self.training_status["is_training"] = False
-        return {"status": "stopped"}
-    
     def predict(self, features: np.ndarray, sequence_length: int = 50) -> Dict:
         """Make prediction using trained model"""
         
-        # Get best accuracy from training history first
         model_accuracy = self.best_accuracy
         if self.training_status.get('history'):
             accuracies = [h.get('accuracy', 0) for h in self.training_status['history']]
             if accuracies:
                 model_accuracy = max(max(accuracies), model_accuracy)
         
-        logger.info(f"Predict called - trained_model exists: {self.trained_model is not None}, best_accuracy: {model_accuracy}")
-        
         if self.trained_model is None:
-            # Return prediction based on technical analysis even without trained model
-            # Use simple momentum-based prediction
+            # Simple momentum-based prediction when model not trained
             if len(features) > 1:
                 recent_return = (features[-1][3] - features[-2][3]) / features[-2][3] if features[-2][3] != 0 else 0
-                direction = 1 if recent_return > 0 else 0
-                prob = 0.5 + (recent_return * 10)  # Scale momentum
-                prob = max(0.2, min(0.8, prob))  # Clamp
+                prob = 0.5 + (recent_return * 10)
+                prob = max(0.2, min(0.8, prob))
             else:
-                direction = 0
                 prob = 0.5
             
             return {
-                "direction": direction,
+                "direction": int(prob > 0.5),
                 "probability": round(prob, 4),
-                "confidence": round(model_accuracy * 0.8, 4),  # Use historical accuracy
-                "model_status": "momentum_based",
+                "confidence": round(model_accuracy * 0.8, 4),
+                "model_status": "not_trained",
                 "model_accuracy": round(model_accuracy, 4)
             }
         
@@ -345,18 +438,12 @@ class EnhancedTrainingService:
         prob = float(self.trained_model.predict(features, verbose=0)[0][0])
         
         # Calculate confidence
-        prediction_strength = abs(prob - 0.5) * 2  # 0 to 1
-        
-        # Confidence = weighted combination
-        # - 30% from prediction strength (how decisive the model is)
-        # - 70% from model accuracy (how reliable the model has been)
+        prediction_strength = abs(prob - 0.5) * 2
         confidence = (prediction_strength * 0.3) + (model_accuracy * 0.7)
         
-        # Boost confidence if prediction is strong (> 65% or < 35%)
         if prob > 0.65 or prob < 0.35:
             confidence = min(confidence * 1.15, 0.95)
         
-        # Ensure minimum confidence based on model being trained
         confidence = max(confidence, model_accuracy * 0.8)
         
         return {
@@ -366,7 +453,12 @@ class EnhancedTrainingService:
             "model_status": "trained",
             "model_accuracy": round(model_accuracy, 4)
         }
+    
+    def stop_training(self):
+        """Stop training"""
+        self.training_status["is_training"] = False
+        return {"status": "stopped"}
 
 
-# Singleton instance
-training_service = EnhancedTrainingService()
+# Singleton
+training_service = PureMLTrainingService()
