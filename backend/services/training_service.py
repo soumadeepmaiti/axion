@@ -265,6 +265,9 @@ class EnhancedTrainingService:
             # Save model reference
             self.trained_model = model
             
+            # Save best accuracy achieved
+            self.best_accuracy = max(history.history.get('accuracy', [0.5]))
+            
             self.training_status["is_training"] = False
             self.training_status["end_time"] = datetime.now(timezone.utc).isoformat()
             
@@ -274,7 +277,8 @@ class EnhancedTrainingService:
                 "best_val_accuracy": round(max(history.history.get('val_accuracy', [0])), 4),
                 "best_auc": round(max(history.history.get('auc', [0])), 4),
                 "epochs_trained": len(history.history.get('loss', [])),
-                "samples_trained": training_data["train_samples"]
+                "samples_trained": training_data["train_samples"],
+                "best_accuracy": round(self.best_accuracy, 4)
             }
             
             logger.info(f"Training completed: {final_metrics}")
