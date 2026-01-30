@@ -73,9 +73,23 @@ class TrainingRequest(BaseModel):
     symbol: str = "BTC/USDT"
     epochs: int = 100
     batch_size: int = 32
-    start_date: Optional[str] = None  # ISO format: 2024-01-01T00:00:00Z
-    end_date: Optional[str] = None    # ISO format: 2025-01-01T00:00:00Z
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     timeframe: str = "1h"
+    # Mode: "pure_ml", "mathematical", "hybrid"
+    mode: str = "pure_ml"
+    # Mathematical strategies to use
+    strategies: List[str] = []
+    # Network architecture
+    num_lstm_layers: int = 2
+    lstm_units: List[int] = [128, 64]
+    num_dense_layers: int = 2
+    dense_units: List[int] = [64, 32]
+    dropout_rate: float = 0.3
+    use_attention: bool = True
+    use_batch_norm: bool = True
+    learning_rate: float = 0.001
+    sequence_length: int = 50
 
 class SentimentRequest(BaseModel):
     text: str
