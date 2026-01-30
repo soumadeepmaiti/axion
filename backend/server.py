@@ -373,7 +373,7 @@ async def get_prediction_history(symbol: Optional[str] = None, limit: int = 50):
 @api_router.get("/training/status")
 async def get_training_status():
     """Get current training status with learned patterns"""
-    return training_service.get_status()
+    return sanitize_value(training_service.get_status())
 
 @api_router.post("/training/start")
 async def start_training(request: TrainingRequest, background_tasks: BackgroundTasks):
