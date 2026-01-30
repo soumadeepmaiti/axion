@@ -599,6 +599,86 @@ async def load_saved_model(model_path: str):
         logger.error(f"Error loading model: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============== Backtesting Endpoints ==============
+
+@api_router.post("/backtest/start")
+async def start_backtest(request: BacktestRequest, background_tasks: BackgroundTasks):
+    """Start a backtest with the loaded model"""
+    try:
+        if backtesting_service.is_running:
+            raise HTTPException(status_code=400, detail="Backtest already in progress")
+        
+        async def run_backtest_task():
+            result = await backtesting_service.run_backtest(
+                symbol=request.symbol,
+                timeframe=request.timeframe,
+                start_date=request.start_date,
+                end_date=request.end_date,
+                initial_capital=request.initial_capital,
+                position_size=request.position_size,
+                use_stop_loss=request.use_stop_loss,
+                stop_loss_pct=request.stop_loss_pct,
+                use_take_profit=request.use_take_profit,
+                take_profit_pct=request.take_profit_pct,
+                max_hold_time=request.max_hold_time,
+                min_confidence=request.min_confidence,
+                commission=request.commission
+            )
+            
+            # Save to database
+            if "result" in result:
+                doc = {
+                    "id": str(uuid.uuid4()),
+                    "symbol": request.symbol,
+                    "timeframe": request.timeframe,
+                    "config": request.dict(),
+                    "result": sanitize_value(result['result']),
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.backtest_history.insert_one(doc)
+        
+        background_tasks.add_task(run_backtest_task)
+        
+        return {
+            "status": "started",
+            "message": f"Backtest started for {request.symbol}",
+            "config": request.dict()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Backtest start error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/backtest/status")
+async def get_backtest_status():
+    """Get current backtest status"""
+    return sanitize_value(backtesting_service.get_status())
+
+@api_router.get("/backtest/result")
+async def get_backtest_result():
+    """Get backtest result"""
+    result = backtesting_service.get_result()
+    if result is None:
+        return {"status": "no_result", "message": "No backtest result available"}
+    return sanitize_value(result)
+
+@api_router.post("/backtest/stop")
+async def stop_backtest():
+    """Stop running backtest"""
+    return backtesting_service.stop_backtest()
+
+@api_router.get("/backtest/history")
+async def get_backtest_history(limit: int = 10):
+    """Get backtest history"""
+    try:
+        history = await db.backtest_history.find({}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+        return {"count": len(history), "history": sanitize_value(history)}
+    except Exception as e:
+        logger.error(f"Error fetching backtest history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============== Dashboard Stats ==============
 
 @api_router.get("/dashboard/stats")
