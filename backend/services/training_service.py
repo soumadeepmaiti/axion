@@ -203,11 +203,12 @@ class TrainingService:
             if callbacks:
                 training_callbacks.extend(callbacks)
             
-            # Add early stopping
+            # Add early stopping with explicit mode
             early_stopping = tf.keras.callbacks.EarlyStopping(
-                monitor='val_direction_accuracy',
+                monitor='val_loss',
                 patience=10,
-                restore_best_weights=True
+                restore_best_weights=True,
+                mode='min'
             )
             training_callbacks.append(early_stopping)
             
