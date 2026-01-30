@@ -36,6 +36,15 @@ User wants two training modes:
 
 ## What's Been Implemented (Jan 30, 2026)
 
+### Backtesting Framework (Jan 30, 2026)
+- ✅ Created `/app/backend/services/backtesting_service.py` - Full backtesting simulation engine
+- ✅ Added API endpoints: POST /api/backtest/start, GET /api/backtest/status, GET /api/backtest/result, POST /api/backtest/stop, GET /api/backtest/history
+- ✅ Created `/app/frontend/src/pages/Backtesting.jsx` - Comprehensive UI with 3 tabs (Configuration, Results, History)
+- ✅ Performance metrics: Total Return, Sharpe Ratio, Sortino Ratio, Max Drawdown, Calmar Ratio, Win Rate, Profit Factor
+- ✅ Charts: Equity Curve, Drawdown Curve, Monthly Returns
+- ✅ Trade table with entry/exit details
+- ✅ Model validation before backtest starts
+
 ### UI Layout Fix (Jan 30, 2026)
 - ✅ Fixed Training.jsx layout - 4 config sections now align horizontally in single row
 - Changed grid from `lg:grid-cols-5` to `lg:grid-cols-4` with proper column distribution
