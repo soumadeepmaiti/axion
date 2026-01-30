@@ -38,6 +38,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# CORS middleware - MUST be added before routes
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Create API router
 api_router = APIRouter(prefix="/api")
 
@@ -481,15 +490,6 @@ async def get_dashboard_stats():
 
 # Include router
 app.include_router(api_router)
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 @app.on_event("startup")
 async def startup_event():
