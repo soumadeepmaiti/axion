@@ -172,10 +172,16 @@ async def get_latest_price(symbol: str):
         symbol = symbol.replace("-", "/")
         data = await data_pipeline.get_latest_data(symbol)
         
+        # Handle NaN/Inf values for JSON serialization
+        def sanitize_float(value):
+            if value is None or (isinstance(value, float) and (np.isnan(value) or np.isinf(value))):
+                return None
+            return value
+        
         return {
             "symbol": symbol,
-            "current_price": data['current_price'],
-            "current_atr": data['current_atr'],
+            "current_price": sanitize_float(data['current_price']),
+            "current_atr": sanitize_float(data['current_atr']),
             "timestamp": data['timestamp']
         }
     except Exception as e:
@@ -257,6 +263,9 @@ async def make_prediction(request: PredictionRequest):
         # Get market data with mathematical analysis
         market_data = await data_pipeline.get_latest_data(request.symbol)
         
+        if market_data.get('error') or market_data['current_price'] == 0:
+            raise HTTPException(status_code=503, detail="Market data temporarily unavailable. Please try again.")
+        
         # Get sentiment
         sentiment_data = None
         if request.use_sentiment:
@@ -273,21 +282,27 @@ async def make_prediction(request: PredictionRequest):
             market_data.get('math_analysis')
         )
         
+        # Helper to sanitize float values
+        def sanitize_float(value, default=0.0):
+            if value is None or (isinstance(value, float) and (np.isnan(value) or np.isinf(value))):
+                return default
+            return float(value)
+        
         # Build response
         response = PredictionResponse(
             symbol=request.symbol,
             direction=prediction['direction'],
             direction_label="LONG" if prediction['direction'] == 1 else "SHORT",
-            probability=prediction['probability'],
-            confidence=prediction['confidence'],
-            take_profit=tp_sl['take_profit'],
-            stop_loss=tp_sl['stop_loss'],
-            risk_reward=tp_sl['risk_reward'],
-            current_price=market_data['current_price'],
-            sentiment_score=sentiment_data['aggregate_sentiment'] if sentiment_data else None,
+            probability=sanitize_float(prediction['probability'], 0.5),
+            confidence=sanitize_float(prediction['confidence'], 0.5),
+            take_profit=sanitize_float(tp_sl['take_profit']),
+            stop_loss=sanitize_float(tp_sl['stop_loss']),
+            risk_reward=sanitize_float(tp_sl['risk_reward'], 1.67),
+            current_price=sanitize_float(market_data['current_price']),
+            sentiment_score=sanitize_float(sentiment_data['aggregate_sentiment']) if sentiment_data else None,
             timestamp=datetime.now(timezone.utc).isoformat(),
             model_status=prediction['model_status'],
-            model_accuracy=prediction.get('model_accuracy')
+            model_accuracy=sanitize_float(prediction.get('model_accuracy'))
         )
         
         # Store prediction in database
@@ -298,6 +313,8 @@ async def make_prediction(request: PredictionRequest):
         
         return response
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Prediction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
