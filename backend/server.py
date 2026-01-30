@@ -270,7 +270,8 @@ async def make_prediction(request: PredictionRequest):
             current_price=market_data['current_price'],
             sentiment_score=sentiment_data['aggregate_sentiment'] if sentiment_data else None,
             timestamp=datetime.now(timezone.utc).isoformat(),
-            model_status=prediction['model_status']
+            model_status=prediction['model_status'],
+            model_accuracy=prediction.get('model_accuracy')
         )
         
         # Store prediction in database
