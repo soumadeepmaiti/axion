@@ -529,7 +529,7 @@ class BacktestingService:
             end_dt = pd.to_datetime(end_date)
             days = (end_dt - start_dt).days
             years = days / 365.25 if days > 0 else 1
-        except:
+        except Exception:
             days = 365
             years = 1
         
@@ -561,10 +561,10 @@ class BacktestingService:
         for t in trades:
             try:
                 entry = pd.to_datetime(t.entry_time)
-                exit = pd.to_datetime(t.exit_time)
-                duration_hours = (exit - entry).total_seconds() / 3600
+                exit_t = pd.to_datetime(t.exit_time)
+                duration_hours = (exit_t - entry).total_seconds() / 3600
                 durations.append(duration_hours)
-            except:
+            except Exception:
                 pass
         avg_duration = np.mean(durations) if durations else 0
         
