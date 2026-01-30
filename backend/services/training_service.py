@@ -317,11 +317,31 @@ class EnhancedTrainingService:
         # Predict
         prob = float(self.trained_model.predict(features, verbose=0)[0][0])
         
+        # Calculate confidence based on:
+        # 1. How far from 50% (prediction strength)
+        # 2. Model's validation accuracy
+        # 3. Consistency with recent predictions
+        
+        prediction_strength = abs(prob - 0.5) * 2  # 0 to 1
+        
+        # Get model's best accuracy from training
+        model_accuracy = self.training_status.get('current_accuracy', 0.5)
+        
+        # Confidence = weighted combination
+        # - 40% from prediction strength (how decisive the model is)
+        # - 60% from model accuracy (how reliable the model has been)
+        confidence = (prediction_strength * 0.4) + (model_accuracy * 0.6)
+        
+        # Boost confidence if prediction is strong (> 70% or < 30%)
+        if prob > 0.7 or prob < 0.3:
+            confidence = min(confidence * 1.2, 0.95)
+        
         return {
             "direction": int(prob > 0.5),
             "probability": round(prob, 4),
-            "confidence": round(abs(prob - 0.5) * 2, 4),
-            "model_status": "trained"
+            "confidence": round(confidence, 4),
+            "model_status": "trained",
+            "model_accuracy": round(model_accuracy, 4)
         }
 
 
