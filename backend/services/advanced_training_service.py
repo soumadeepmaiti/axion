@@ -500,7 +500,7 @@ class AdvancedTrainingService:
         
         return {
             'status': 'started',
-            'message': f"Training started with {network_type} model",
+            'message': f"Training started with {config.get('network_type', 'lstm')} model",
             'config': {
                 'network_type': config.get('network_type', 'lstm'),
                 'mode': config.get('mode', 'pure_ml'),
