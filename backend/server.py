@@ -53,6 +53,11 @@ from services.sentiment_service import sentiment_analyzer
 from services.training_service import training_service
 from ml_models.hybrid_model import hybrid_model
 
+# Import advanced services
+from services.advanced_data_pipeline import advanced_data_pipeline
+from services.advanced_training_service import advanced_training_service
+from ml_models.advanced_models import list_saved_models, load_model
+
 # Create the main app
 app = FastAPI(
     title="Omni-Crypto Hybrid Trading System",
