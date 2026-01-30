@@ -87,8 +87,8 @@ class TestBacktestHistoryEndpoint:
 class TestBacktestStartEndpoint:
     """Backtest start endpoint tests"""
     
-    def test_backtest_start_without_model(self):
-        """Test POST /api/backtest/start validates model is loaded"""
+    def test_backtest_start_validates_model_loaded(self):
+        """Test POST /api/backtest/start validates model is loaded before starting"""
         # First check if a backtest is already running
         status_response = requests.get(f"{BASE_URL}/api/backtest/status")
         status = status_response.json()
@@ -113,11 +113,9 @@ class TestBacktestStartEndpoint:
         }
         
         response = requests.post(f"{BASE_URL}/api/backtest/start", json=payload)
-        
-        # Should either start (200) or fail with model not loaded error (400)
-        assert response.status_code in [200, 400]
         data = response.json()
         
+        # Should either start (200) if model is loaded, or fail with 400 if no model
         if response.status_code == 200:
             assert data["status"] == "started"
             assert "config" in data
@@ -126,11 +124,13 @@ class TestBacktestStartEndpoint:
             time.sleep(2)
             status_response = requests.get(f"{BASE_URL}/api/backtest/status")
             print(f"Status after start: {status_response.json()}")
+        elif response.status_code == 400:
+            # Should indicate model not loaded - this is expected behavior
+            assert "detail" in data
+            assert "model" in data["detail"].lower() or "trained" in data["detail"].lower()
+            print(f"Backtest correctly rejected (no model loaded): {data['detail']}")
         else:
-            # Should indicate model not loaded
-            assert "error" in data or "detail" in data
-            error_msg = data.get("error") or data.get("detail", "")
-            print(f"Backtest start failed (expected if no model): {error_msg}")
+            pytest.fail(f"Unexpected status code: {response.status_code}")
 
 
 class TestBacktestStopEndpoint:
