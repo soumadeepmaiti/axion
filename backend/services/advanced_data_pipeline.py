@@ -518,6 +518,10 @@ class AdvancedDataPipeline:
             
             df = self.generate_mock_order_book_features(df)
             df = self.generate_mock_onchain_features(df)
+            
+            # Apply ALL enhanced features (new!)
+            df = apply_all_enhanced_features(df)
+            
             df = self.create_labels(df)
             
             primary_df = df
