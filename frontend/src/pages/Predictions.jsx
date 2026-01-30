@@ -53,7 +53,7 @@ const Predictions = () => {
               <SelectValue placeholder="All Symbols" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Symbols</SelectItem>
+              <SelectItem value="all">All Symbols</SelectItem>
               <SelectItem value="BTC/USDT">BTC/USDT</SelectItem>
               <SelectItem value="ETH/USDT">ETH/USDT</SelectItem>
             </SelectContent>
