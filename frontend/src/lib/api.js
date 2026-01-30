@@ -48,12 +48,14 @@ export const getAggregateSentiment = async (symbol) => {
 };
 
 // Training
-export const startTraining = async (symbol, epochs = 50, batchSize = 32, lookbackDays = 30) => {
+export const startTraining = async (symbol, epochs = 100, batchSize = 32, lookbackDays = null, startDate = null, endDate = null, timeframe = '1h') => {
   const response = await API.post('/training/start', {
     symbol,
     epochs,
     batch_size: batchSize,
-    lookback_days: lookbackDays
+    start_date: startDate,
+    end_date: endDate,
+    timeframe
   });
   return response.data;
 };
