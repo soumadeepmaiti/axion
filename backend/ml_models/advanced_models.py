@@ -459,6 +459,9 @@ class EnsembleModel:
 def build_model(network_type: str, input_shape: Tuple[int, int], config: Dict) -> Model:
     """Factory function to build model based on network type"""
     
+    # Import advanced architectures
+    from ml_models.advanced_architectures import build_advanced_model
+    
     builders = {
         'lstm': lambda: build_lstm_model(
             input_shape,
@@ -504,6 +507,11 @@ def build_model(network_type: str, input_shape: Tuple[int, int], config: Dict) -
             use_batch_norm=config.get('use_batch_norm', True),
             learning_rate=config.get('learning_rate', 0.001)
         ),
+        # Advanced Models
+        'tft': lambda: build_advanced_model('tft', input_shape, config),
+        'multi_task': lambda: build_advanced_model('multi_task', input_shape, config),
+        'gnn': lambda: build_advanced_model('gnn', input_shape, config),
+        'multi_tf_attention': lambda: build_advanced_model('multi_tf_attention', input_shape, config),
     }
     
     if network_type not in builders:
