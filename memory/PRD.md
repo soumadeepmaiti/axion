@@ -41,7 +41,7 @@ User wants two training modes:
 - ✅ CCXT Binance US integration for live market data
 - ✅ **Advanced Data Pipeline** (`advanced_data_pipeline.py`):
   - Multi-timeframe data support (5m, 15m, 1h, 4h, 1d)
-  - Extended historical data (up to 2 years)
+  - Extended historical data (up to 2 years, 50,000+ samples)
   - 50+ technical indicators using `ta` library
   - Market Regime Detection (Bull/Bear/Sideways)
   - Cross-Asset Correlation (BTC dominance, ETH/BTC ratio)
@@ -54,29 +54,42 @@ User wants two training modes:
   - Transformer (Multi-head attention)
   - CNN + LSTM Hybrid
   - Ensemble (LSTM + XGBoost + RandomForest)
-  - Late Fusion support for multi-timeframe
 - ✅ **Advanced Training Service** (`advanced_training_service.py`):
   - Walk-Forward Validation (time-series CV)
   - Class Balancing (SMOTE or class weights)
   - Optuna Hyperparameter Search
   - Learning Rate Scheduling (cosine, step, reduce_plateau)
-  - Optional Early Stopping
-  - **Model Persistence** (save/load trained models)
+  - Optional Early Stopping with configurable patience
+  - **Model Persistence** (save/load trained models to disk)
 - ✅ **API Endpoints**:
   - `/api/training/advanced/start` - Start advanced training
   - `/api/training/advanced/status` - Get training status
   - `/api/models/saved` - List saved models
   - `/api/models/load` - Load saved model
 
-### Frontend
+### Frontend - Complete Training UI
 - ✅ Dashboard with real-time price charts
-- ✅ **Training Page** with:
-  - Network Type selector (LSTM, GRU, Transformer, CNN+LSTM, Ensemble)
-  - Network Layers configuration
-  - Hyperparameters configuration
-  - Start/Stop training buttons
-  - Real-time training progress
-  - Training history
+- ✅ **Comprehensive Training Page** with 4 tabs:
+  1. **Configuration Tab**:
+     - Training Mode (Pure ML / Mathematical / Hybrid)
+     - Network Type selector (LSTM / GRU / Transformer / CNN+LSTM / Ensemble)
+     - Network Layers configuration (LSTM/GRU layers, Dense layers with unit sliders)
+     - Hyperparameters (Dropout, Learning Rate, Sequence Length, Attention, BatchNorm)
+     - Architecture summary display
+  2. **Advanced Options Tab**:
+     - Early Stopping toggle with patience slider
+     - Learning Rate Schedule dropdown (Reduce on Plateau / Cosine / Step)
+     - Multi-Timeframe toggle
+     - Walk-Forward Validation toggle with CV folds
+     - Optuna Hyperparameter Search toggle with trials slider
+     - Class Balancing method (Class Weights / SMOTE)
+  3. **Saved Models Tab**:
+     - List of saved models with accuracy and metadata
+     - Load Model button for each saved model
+  4. **History Tab**:
+     - Training history with accuracy scores
+- ✅ Start/Stop Training buttons
+- ✅ Real-time Training Progress with loss/accuracy charts
 - ✅ Predictions history page
 
 ## Core Requirements - Status
