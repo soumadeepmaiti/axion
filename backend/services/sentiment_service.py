@@ -1,19 +1,20 @@
 """
 Sentiment Analysis Service
-Uses FinBERT for financial sentiment and LLM for enhancement
+Uses FinBERT for financial sentiment, LLM for enhancement, and CryptoPanic for real news
 """
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
 import asyncio
 import os
+import aiohttp
 from dotenv import load_dotenv
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Mock sentiment data for demonstration (user will add API keys later)
+# Fallback mock sentiment data
 MOCK_SENTIMENTS = [
     {"text": "Bitcoin breaks through resistance, bulls are in control!", "source": "twitter", "sentiment": 0.85},
     {"text": "ETH network upgrades showing positive results", "source": "reddit", "sentiment": 0.72},
@@ -21,6 +22,69 @@ MOCK_SENTIMENTS = [
     {"text": "Whale activity detected on major exchanges", "source": "twitter", "sentiment": -0.25},
     {"text": "Regulatory concerns weigh on crypto markets", "source": "news", "sentiment": -0.65},
 ]
+
+
+class CryptoPanicClient:
+    """Client for CryptoPanic News API"""
+    
+    BASE_URL = "https://cryptopanic.com/api/v1"
+    
+    def __init__(self):
+        self.api_key = os.environ.get('CRYPTOPANIC_API_KEY')
+        
+    async def fetch_news(self, currencies: List[str] = None, kind: str = "news") -> List[Dict]:
+        """Fetch news from CryptoPanic API"""
+        if not self.api_key:
+            logger.warning("CRYPTOPANIC_API_KEY not set")
+            return []
+            
+        try:
+            params = {
+                "auth_token": self.api_key,
+                "kind": kind,
+                "public": "true"
+            }
+            
+            if currencies:
+                params["currencies"] = ",".join(currencies)
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.BASE_URL}/posts/", params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data.get("results", [])
+                    else:
+                        logger.error(f"CryptoPanic API error: {response.status}")
+                        return []
+        except Exception as e:
+            logger.error(f"CryptoPanic fetch error: {e}")
+            return []
+    
+    def extract_sentiment_from_votes(self, post: Dict) -> float:
+        """Extract sentiment score from CryptoPanic votes"""
+        votes = post.get("votes", {})
+        positive = votes.get("positive", 0)
+        negative = votes.get("negative", 0)
+        liked = votes.get("liked", 0)
+        disliked = votes.get("disliked", 0)
+        
+        total_positive = positive + liked
+        total_negative = negative + disliked
+        total = total_positive + total_negative
+        
+        if total == 0:
+            # Use sentiment field if available
+            sentiment_field = post.get("sentiment")
+            if sentiment_field == "positive":
+                return 0.5
+            elif sentiment_field == "negative":
+                return -0.5
+            return 0.0
+            
+        return (total_positive - total_negative) / total
+
+
+cryptopanic_client = CryptoPanicClient()
 
 
 class SentimentAnalyzer:
