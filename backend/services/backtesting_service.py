@@ -247,7 +247,6 @@ class BacktestingService:
         
         trades: List[Trade] = []
         equity_curve: List[Dict] = []
-        daily_returns: List[float] = []
         
         # Position tracking
         position = None  # {'direction': 'long'/'short', 'entry_price': float, 'entry_time': str, 'size': float}
@@ -269,9 +268,6 @@ class BacktestingService:
         
         total_bars = len(df) - sequence_length
         
-        # Get timeframe in hours for duration calculations
-        tf_hours = self._timeframe_to_hours(timeframe)
-        
         logger.info(f"Starting backtest simulation with {total_bars} bars")
         
         for i in range(sequence_length, len(df)):
@@ -279,7 +275,6 @@ class BacktestingService:
                 logger.info("Backtest stopped by user")
                 break
             
-            current_idx = i
             current_time = df.index[i]
             current_price = df['close'].iloc[i]
             current_high = df['high'].iloc[i]
