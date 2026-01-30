@@ -9,14 +9,14 @@ import { RefreshCw, TrendingUp, TrendingDown, History, Target, Shield } from "lu
 import { getPredictionHistory, makePrediction } from "@/lib/api";
 
 const Predictions = () => {
-  const [symbol, setSymbol] = useState("");
+  const [symbol, setSymbol] = useState("all");
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const fetchPredictions = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getPredictionHistory(symbol || null, 50);
+      const result = await getPredictionHistory(symbol === "all" ? null : symbol, 50);
       setPredictions(result.predictions || []);
     } catch (error) {
       console.error("Error fetching predictions:", error);
