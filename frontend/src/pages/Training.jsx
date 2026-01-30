@@ -74,6 +74,10 @@ const NETWORK_TYPES = [
   { id: "transformer", name: "Transformer", description: "Multi-head Attention - State of art", icon: "🔮" },
   { id: "cnn_lstm", name: "CNN + LSTM", description: "Convolutional + Recurrent hybrid", icon: "🔗" },
   { id: "ensemble", name: "Ensemble", description: "LSTM + XGBoost + RandomForest", icon: "🎯" },
+  { id: "tft", name: "TFT", description: "Temporal Fusion Transformer - Google's best", icon: "🌟" },
+  { id: "multi_task", name: "Multi-Task", description: "Predict direction + volatility + magnitude", icon: "📊" },
+  { id: "gnn", name: "GNN", description: "Graph Neural Network - Asset relationships", icon: "🕸️" },
+  { id: "multi_tf_attention", name: "Multi-TF Attn", description: "Separate attention per timeframe", icon: "⏱️" },
 ];
 
 const LR_SCHEDULES = [
