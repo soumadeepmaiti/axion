@@ -324,7 +324,7 @@ async def get_training_status():
 
 @api_router.post("/training/start")
 async def start_training(request: TrainingRequest, background_tasks: BackgroundTasks):
-    """Start model training"""
+    """Start comprehensive model training with ALL historical data"""
     try:
         if training_service.training_status['is_training']:
             raise HTTPException(status_code=400, detail="Training already in progress")
@@ -332,30 +332,30 @@ async def start_training(request: TrainingRequest, background_tasks: BackgroundT
         # Reset status
         training_service.reset_status()
         
-        # Fetch training data
-        logger.info(f"Fetching training data for {request.symbol}")
-        data = await data_pipeline.get_training_data(request.symbol, request.lookback_days)
+        # Fetch ALL historical training data
+        logger.info(f"Fetching ALL historical data for {request.symbol}...")
+        data = await data_pipeline.get_full_training_data(request.symbol)
         
-        if len(data['micro_features']) == 0:
+        if "error" in data:
+            raise HTTPException(status_code=400, detail=data['error'])
+        
+        if len(data['features']) == 0:
             raise HTTPException(status_code=400, detail="No training data available")
         
-        # Prepare training data
-        training_data = training_service.prepare_training_data(
-            data['micro_features'],
-            data['macro_features'],
-            data['labels']
-        )
-        
-        if "error" in training_data:
-            raise HTTPException(status_code=400, detail=training_data['error'])
+        logger.info(f"Got {len(data['features'])} samples for training")
+        logger.info(f"Data range: {data['data_info']}")
+        logger.info(f"Mathematical analysis: {data['math_analysis']}")
         
         # Start training in background
         async def train_task():
-            result = await training_service.train_model(
-                hybrid_model,
-                training_data,
+            result = await training_service.train_full_model(
+                features=data['features'],
+                labels=data['labels'],
                 epochs=request.epochs,
-                batch_size=request.batch_size
+                batch_size=request.batch_size,
+                sequence_length=50,
+                data_info=data['data_info'],
+                math_analysis=data['math_analysis']
             )
             # Save to database
             doc = {
@@ -363,11 +363,31 @@ async def start_training(request: TrainingRequest, background_tasks: BackgroundT
                 "symbol": request.symbol,
                 "result": result,
                 "history": training_service.training_status['history'],
+                "data_info": data['data_info'],
+                "math_analysis": data['math_analysis'],
                 "created_at": datetime.now(timezone.utc).isoformat()
             }
             await db.training_history.insert_one(doc)
         
         background_tasks.add_task(train_task)
+        
+        return {
+            "status": "started",
+            "message": f"Training started for {request.symbol} with ALL historical data",
+            "config": {
+                "epochs": request.epochs,
+                "batch_size": request.batch_size,
+                "total_samples": len(data['features']),
+                "data_range": data['data_info']['date_range']
+            },
+            "math_analysis": data['math_analysis']
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Training start error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
         
         return {
             "status": "started",
