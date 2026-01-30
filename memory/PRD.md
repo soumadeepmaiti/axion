@@ -36,6 +36,10 @@ User wants two training modes:
 
 ## What's Been Implemented (Jan 30, 2026)
 
+### UI Layout Fix (Jan 30, 2026)
+- ✅ Fixed Training.jsx layout - 4 config sections now align horizontally in single row
+- Changed grid from `lg:grid-cols-5` to `lg:grid-cols-4` with proper column distribution
+
 ### Backend - Complete Advanced Trading System
 
 #### Data Pipeline - 99 Features (191 total columns)
