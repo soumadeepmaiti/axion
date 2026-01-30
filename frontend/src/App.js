@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Dashboard from "@/pages/Dashboard";
 import Training from "@/pages/Training";
 import Predictions from "@/pages/Predictions";
+import Backtesting from "@/pages/Backtesting";
 import Settings from "@/pages/Settings";
 import { 
   LayoutDashboard, 
@@ -11,7 +12,8 @@ import {
   TrendingUp, 
   Settings as SettingsIcon,
   Activity,
-  Cpu
+  Cpu,
+  TestTube2
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -20,6 +22,7 @@ const Sidebar = () => {
   const navItems = [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/training", icon: Brain, label: "Training" },
+    { path: "/backtesting", icon: TestTube2, label: "Backtesting" },
     { path: "/predictions", icon: TrendingUp, label: "Predictions" },
     { path: "/settings", icon: SettingsIcon, label: "Settings" },
   ];
