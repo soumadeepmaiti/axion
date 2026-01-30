@@ -487,7 +487,10 @@ async def start_training(request: TrainingRequest, background_tasks: BackgroundT
 @api_router.post("/training/stop")
 async def stop_training():
     """Stop current training"""
-    return training_service.stop_training()
+    # Try both services
+    result1 = training_service.stop_training()
+    result2 = advanced_training_service.stop_training()
+    return result2 if advanced_training_service.is_training else result1
 
 @api_router.get("/training/history")
 async def get_training_history(limit: int = 10):
@@ -497,6 +500,87 @@ async def get_training_history(limit: int = 10):
         return {"count": len(history), "history": history}
     except Exception as e:
         logger.error(f"Error fetching training history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============== Advanced Training Endpoints ==============
+
+@api_router.post("/training/advanced/start")
+async def start_advanced_training(request: TrainingRequest):
+    """Start advanced model training with all features"""
+    try:
+        from datetime import datetime as dt
+        
+        # Parse dates
+        start_date = None
+        end_date = None
+        if request.start_date:
+            start_date = dt.fromisoformat(request.start_date.replace('Z', '+00:00'))
+        if request.end_date:
+            end_date = dt.fromisoformat(request.end_date.replace('Z', '+00:00'))
+        
+        # Build config
+        config = {
+            "mode": request.mode,
+            "epochs": request.epochs,
+            "batch_size": request.batch_size,
+            "timeframe": request.timeframe,
+            "start_date": start_date,
+            "end_date": end_date,
+            "network_type": request.network_type,
+            "strategies": request.strategies,
+            "num_lstm_layers": request.num_lstm_layers,
+            "lstm_units": request.lstm_units,
+            "num_dense_layers": request.num_dense_layers,
+            "dense_units": request.dense_units,
+            "dropout_rate": request.dropout_rate,
+            "use_attention": request.use_attention,
+            "use_batch_norm": request.use_batch_norm,
+            "learning_rate": request.learning_rate,
+            "sequence_length": request.sequence_length,
+            "use_early_stopping": request.use_early_stopping,
+            "early_stopping_patience": request.early_stopping_patience,
+            "lr_schedule": request.lr_schedule,
+            "use_walk_forward": request.use_walk_forward,
+            "cv_folds": request.cv_folds,
+            "use_optuna": request.use_optuna,
+            "optuna_trials": request.optuna_trials,
+            "class_balance_method": request.class_balance_method,
+            "multi_timeframe": request.multi_timeframe,
+            "save_model": request.save_model
+        }
+        
+        result = await advanced_training_service.start_training(request.symbol, config)
+        return sanitize_value(result)
+        
+    except Exception as e:
+        logger.error(f"Advanced training error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/training/advanced/status")
+async def get_advanced_training_status():
+    """Get advanced training status"""
+    return sanitize_value(advanced_training_service.get_status())
+
+# ============== Model Management Endpoints ==============
+
+@api_router.get("/models/saved")
+async def get_saved_models():
+    """Get list of saved models"""
+    try:
+        models = list_saved_models()
+        return {"count": len(models), "models": sanitize_value(models)}
+    except Exception as e:
+        logger.error(f"Error listing models: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/models/load")
+async def load_saved_model(model_path: str):
+    """Load a previously saved model"""
+    try:
+        result = await advanced_training_service.load_saved_model(model_path)
+        return sanitize_value(result)
+    except Exception as e:
+        logger.error(f"Error loading model: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============== Dashboard Stats ==============
