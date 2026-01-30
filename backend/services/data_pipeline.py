@@ -257,14 +257,29 @@ class PureMLDataPipeline:
         """Get latest data for prediction"""
         df = await self.fetch_ohlcv(symbol, '1h', limit=150)
         
+        if df.empty:
+            return {
+                'features': np.array([]),
+                'current_price': 0.0,
+                'current_atr': 0.0,
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'error': 'No data available'
+            }
+        
         df = self.calculate_raw_features(df)
         features = self.prepare_features(df)
         
         if f'{symbol}_train' in self.scalers:
             features = self.scale_features(features, f'{symbol}_train', fit=False)
         
-        current_price = float(df['close'].iloc[-1]) if not df.empty else 0
-        current_atr = float(df['atr'].iloc[-1]) if not df.empty and 'atr' in df.columns else 0
+        current_price = float(df['close'].iloc[-1]) if not df.empty else 0.0
+        current_atr = float(df['atr'].iloc[-1]) if not df.empty and 'atr' in df.columns else 0.0
+        
+        # Handle NaN/Inf values
+        if np.isnan(current_price) or np.isinf(current_price):
+            current_price = 0.0
+        if np.isnan(current_atr) or np.isinf(current_atr):
+            current_atr = current_price * 0.02 if current_price > 0 else 0.0
         
         return {
             'features': features[-100:] if len(features) > 100 else features,
@@ -273,10 +288,18 @@ class PureMLDataPipeline:
             'timestamp': datetime.now(timezone.utc).isoformat()
         }
     
-    def calculate_tp_sl(self, current_price: float, atr: float, direction: int) -> Dict:
+    def calculate_tp_sl(self, current_price: float, atr: float, direction: int, math_analysis: Dict = None) -> Dict:
         """Calculate TP/SL based on ATR (volatility-adjusted)"""
-        if atr == 0:
+        if atr == 0 or np.isnan(atr) or np.isinf(atr):
             atr = current_price * 0.02  # Default 2% if ATR not available
+        
+        # Handle invalid current_price
+        if current_price == 0 or np.isnan(current_price) or np.isinf(current_price):
+            return {
+                'take_profit': 0.0,
+                'stop_loss': 0.0,
+                'risk_reward': 1.67
+            }
             
         if direction == 1:  # Long
             tp = current_price + (2.5 * atr)
@@ -286,8 +309,8 @@ class PureMLDataPipeline:
             sl = current_price + (1.5 * atr)
         
         return {
-            'take_profit': round(tp, 2),
-            'stop_loss': round(sl, 2),
+            'take_profit': round(float(tp), 2),
+            'stop_loss': round(float(sl), 2),
             'risk_reward': round(2.5 / 1.5, 2)
         }
 
