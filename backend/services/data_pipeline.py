@@ -216,7 +216,8 @@ class EnhancedDataPipeline:
     
     def __init__(self, symbols: List[str] = None):
         self.symbols = symbols or ['BTC/USDT', 'ETH/USDT']
-        self.exchange = ccxt.binance({
+        # Use binanceus for unrestricted access
+        self.exchange = ccxt.binanceus({
             'enableRateLimit': True,
             'options': {'defaultType': 'spot'}
         })
