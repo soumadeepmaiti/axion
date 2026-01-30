@@ -388,22 +388,6 @@ async def start_training(request: TrainingRequest, background_tasks: BackgroundT
     except Exception as e:
         logger.error(f"Training start error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-        
-        return {
-            "status": "started",
-            "message": f"Training started for {request.symbol}",
-            "config": {
-                "epochs": request.epochs,
-                "batch_size": request.batch_size,
-                "samples": training_data['total_samples']
-            }
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Training start error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/training/stop")
 async def stop_training():
