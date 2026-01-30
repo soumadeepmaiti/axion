@@ -71,9 +71,11 @@ class PredictionResponse(BaseModel):
 
 class TrainingRequest(BaseModel):
     symbol: str = "BTC/USDT"
-    epochs: int = 50
+    epochs: int = 100
     batch_size: int = 32
-    lookback_days: int = 30
+    start_date: Optional[str] = None  # ISO format: 2024-01-01T00:00:00Z
+    end_date: Optional[str] = None    # ISO format: 2025-01-01T00:00:00Z
+    timeframe: str = "1h"
 
 class SentimentRequest(BaseModel):
     text: str
