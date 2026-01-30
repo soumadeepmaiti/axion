@@ -36,6 +36,8 @@ class EnhancedTrainingService:
             "math_analysis": None
         }
         self.training_task = None
+        self.best_accuracy = 0.5  # Store best accuracy achieved
+        self.trained_model = None  # Store trained model
         
     def reset_status(self):
         """Reset training status"""
@@ -52,6 +54,7 @@ class EnhancedTrainingService:
             "data_info": None,
             "math_analysis": None
         }
+        # Don't reset best_accuracy or trained_model - keep them for predictions
         
     def get_status(self) -> Dict:
         """Get current training status"""
