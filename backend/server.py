@@ -67,6 +67,7 @@ class PredictionResponse(BaseModel):
     sentiment_score: Optional[float] = None
     timestamp: str
     model_status: str
+    model_accuracy: Optional[float] = None
 
 class TrainingRequest(BaseModel):
     symbol: str = "BTC/USDT"
