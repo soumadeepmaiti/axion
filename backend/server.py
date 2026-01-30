@@ -159,9 +159,9 @@ async def get_market_data(request: MarketDataRequest):
         data = df.reset_index().to_dict('records')
         for row in data:
             row['timestamp'] = row['timestamp'].isoformat() if hasattr(row['timestamp'], 'isoformat') else str(row['timestamp'])
-            # Convert NaN to None
-            for key, value in row.items():
-                if isinstance(value, float) and np.isnan(value):
+            # Convert NaN and Inf to None for JSON compatibility
+            for key, value in list(row.items()):
+                if isinstance(value, float) and (np.isnan(value) or np.isinf(value)):
                     row[key] = None
         
         return {
