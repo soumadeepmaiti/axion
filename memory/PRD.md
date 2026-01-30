@@ -110,17 +110,18 @@ User wants two training modes:
 | Training pipeline | ✅ Complete |
 | Dual-mode training | ✅ Complete |
 | User-configurable network | ✅ Complete |
+| Backtesting Framework | ✅ Complete |
 
 ## Tech Stack
-- Backend: FastAPI, TensorFlow/Keras, CCXT, Transformers, pandas_ta
+- Backend: FastAPI, TensorFlow/Keras, CCXT, Transformers, ta
 - Frontend: React, Recharts, TailwindCSS, Shadcn/UI
 - Database: MongoDB
-- ML: Bi-LSTM, Attention layers, FinBERT
+- ML: Bi-LSTM, Attention layers, FinBERT, XGBoost
 
 ## Backlog
 
 ### P0 (Critical) 
-- Implement Backtesting Framework (run models against historical data, generate PnL/Sharpe Ratio/Max Drawdown reports)
+- ~~Implement Backtesting Framework~~ ✅ COMPLETED
 
 ### P1 (High)
 - Verify Model Persistence End-to-End (train → save → restart → load → predict)
@@ -128,10 +129,8 @@ User wants two training modes:
 - Real Twitter/Reddit API integration for sentiment
 
 ### P2 (Medium)
-- Backtesting with historical data
 - WebSocket for real-time price updates
 - Alert system for predictions
-- Time-based trade exit (15 min auto-close)
 
 ### P3 (Low)
 - Full 10-year data downsampling strategy
