@@ -407,7 +407,7 @@ const Training = () => {
             </Card>
 
             {/* Network Type Selection */}
-            <Card className="bg-card border-border lg:col-span-2">
+            <Card className="bg-card border-border lg:col-span-3">
               <CardHeader className="pb-2">
                 <CardTitle className="font-mono text-base flex items-center gap-2">
                   <Network className="w-4 h-4 text-primary" />
