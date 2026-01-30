@@ -165,6 +165,11 @@ class PureMLDataPipeline:
         
         return df
     
+    # Alias for backward compatibility
+    def calculate_technical_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Alias for calculate_raw_features"""
+        return self.calculate_raw_features(df)
+    
     def prepare_features(self, df: pd.DataFrame) -> np.ndarray:
         """Prepare feature matrix for ML - all features, model decides importance"""
         feature_cols = [
