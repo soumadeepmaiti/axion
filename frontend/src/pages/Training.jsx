@@ -314,7 +314,7 @@ const Training = () => {
 
         {/* ==================== CONFIGURATION TAB ==================== */}
         <TabsContent value="config" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             
             {/* Training Configuration */}
             <Card className="bg-card border-border">
