@@ -8,6 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,57 +20,101 @@ import {
 } from "recharts";
 import {
   Play, Square, RefreshCw, Brain, Activity, Clock, Cpu,
-  CalendarIcon, TrendingUp, Zap
+  CalendarIcon, TrendingUp, Zap, Layers, Settings, Calculator,
+  GitBranch, Sigma
 } from "lucide-react";
 import { format } from "date-fns";
-import { startTraining, getTrainingStatus, stopTraining, getTrainingHistory, getModelSummary } from "@/lib/api";
+import { API } from "@/lib/api";
+
+// Custom API call for advanced training
+const startAdvancedTraining = async (config) => {
+  const response = await API.post('/training/start', config);
+  return response.data;
+};
+
+const getTrainingStatus = async () => {
+  const response = await API.get('/training/status');
+  return response.data;
+};
+
+const getTrainingHistory = async () => {
+  const response = await API.get('/training/history?limit=10');
+  return response.data;
+};
+
+const stopTraining = async () => {
+  const response = await API.post('/training/stop');
+  return response.data;
+};
+
+const MATH_STRATEGIES = [
+  { id: "mean_reversion", name: "Mean Reversion", description: "Price returns to average" },
+  { id: "momentum", name: "Momentum", description: "Trend following strategy" },
+  { id: "volatility_breakout", name: "Volatility Breakout", description: "Bollinger Bands style" },
+  { id: "rsi", name: "RSI Divergence", description: "Oversold/overbought signals" },
+  { id: "macd", name: "MACD Crossover", description: "Moving average convergence" },
+  { id: "fibonacci", name: "Fibonacci Levels", description: "Key retracement levels" },
+  { id: "support_resistance", name: "Support/Resistance", description: "Dynamic price levels" },
+];
 
 const Training = () => {
+  // Basic config
   const [symbol, setSymbol] = useState("BTC/USDT");
-  const [epochs, setEpochs] = useState(100);
-  const [batchSize, setBatchSize] = useState(32);
   const [timeframe, setTimeframe] = useState("1h");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+  const [epochs, setEpochs] = useState(100);
+  const [batchSize, setBatchSize] = useState(32);
+  
+  // Mode
+  const [mode, setMode] = useState("pure_ml");
+  
+  // Network architecture
+  const [numLstmLayers, setNumLstmLayers] = useState(2);
+  const [lstmUnits, setLstmUnits] = useState([128, 64]);
+  const [numDenseLayers, setNumDenseLayers] = useState(2);
+  const [denseUnits, setDenseUnits] = useState([64, 32]);
+  const [dropoutRate, setDropoutRate] = useState(0.3);
+  const [useAttention, setUseAttention] = useState(true);
+  const [useBatchNorm, setUseBatchNorm] = useState(true);
+  const [learningRate, setLearningRate] = useState(0.001);
+  const [sequenceLength, setSequenceLength] = useState(50);
+  
+  // Strategies
+  const [selectedStrategies, setSelectedStrategies] = useState([]);
+  
+  // Status
   const [trainingStatus, setTrainingStatus] = useState(null);
   const [trainingHistory, setTrainingHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [learnedPatterns, setLearnedPatterns] = useState(null);
+  const [mathSignals, setMathSignals] = useState(null);
   const intervalRef = useRef(null);
 
   const fetchStatus = useCallback(async () => {
     try {
       const status = await getTrainingStatus();
       setTrainingStatus(status);
-      
-      if (status.learned_patterns) {
-        setLearnedPatterns(status.learned_patterns);
-      }
+      if (status.learned_patterns) setLearnedPatterns(status.learned_patterns);
+      if (status.math_signals) setMathSignals(status.math_signals);
     } catch (error) {
-      console.error("Error fetching status:", error);
+      console.error("Error:", error);
     }
   }, []);
 
-  const fetchInitialData = useCallback(async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       const history = await getTrainingHistory();
       setTrainingHistory(history.history || []);
-      
-      if (history.history && history.history.length > 0) {
-        const latest = history.history[0];
-        if (latest.learned_patterns) {
-          setLearnedPatterns(latest.learned_patterns);
-        }
-      }
     } catch (error) {
-      console.error("Error fetching initial data:", error);
+      console.error("Error:", error);
     }
   }, []);
 
   useEffect(() => {
-    fetchInitialData();
+    fetchHistory();
     fetchStatus();
-  }, [fetchInitialData, fetchStatus]);
+  }, [fetchHistory, fetchStatus]);
 
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -77,29 +126,30 @@ const Training = () => {
   const handleStartTraining = async () => {
     setLoading(true);
     try {
-      const params = {
+      const config = {
         symbol,
         epochs,
         batch_size: batchSize,
-        timeframe,
         start_date: startDate ? startDate.toISOString() : null,
-        end_date: endDate ? endDate.toISOString() : null
+        end_date: endDate ? endDate.toISOString() : null,
+        timeframe,
+        mode,
+        strategies: selectedStrategies,
+        num_lstm_layers: numLstmLayers,
+        lstm_units: lstmUnits.slice(0, numLstmLayers),
+        num_dense_layers: numDenseLayers,
+        dense_units: denseUnits.slice(0, numDenseLayers),
+        dropout_rate: dropoutRate,
+        use_attention: useAttention,
+        use_batch_norm: useBatchNorm,
+        learning_rate: learningRate,
+        sequence_length: sequenceLength
       };
       
-      const response = await startTraining(
-        params.symbol, 
-        params.epochs, 
-        params.batch_size,
-        null, // lookback_days deprecated
-        params.start_date,
-        params.end_date,
-        params.timeframe
-      );
-      
-      toast.success("Training started! Model will discover patterns from your data.");
+      await startAdvancedTraining(config);
+      toast.success(`Training started in ${mode.replace('_', ' ')} mode!`);
       fetchStatus();
     } catch (error) {
-      console.error("Error starting training:", error);
       toast.error(error.response?.data?.detail || "Failed to start training");
     } finally {
       setLoading(false);
@@ -107,23 +157,25 @@ const Training = () => {
   };
 
   const handleStopTraining = async () => {
-    try {
-      await stopTraining();
-      toast.info("Training stopped");
-      fetchStatus();
-    } catch (error) {
-      toast.error("Failed to stop training");
-    }
+    await stopTraining();
+    toast.info("Training stopped");
+    fetchStatus();
+  };
+
+  const toggleStrategy = (strategyId) => {
+    setSelectedStrategies(prev => 
+      prev.includes(strategyId) 
+        ? prev.filter(s => s !== strategyId)
+        : [...prev, strategyId]
+    );
   };
 
   const progressPercent = trainingStatus?.total_epochs > 0
     ? (trainingStatus.current_epoch / trainingStatus.total_epochs) * 100
     : 0;
 
-  // Prepare feature importance data for chart
   const featureImportanceData = learnedPatterns?.feature_importance
-    ? Object.entries(learnedPatterns.feature_importance)
-        .slice(0, 10)
+    ? Object.entries(learnedPatterns.feature_importance).slice(0, 10)
         .map(([name, value]) => ({ name: name.replace(/_/g, ' '), importance: value }))
     : [];
 
@@ -133,29 +185,45 @@ const Training = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground font-mono">Model Training</h1>
-          <p className="text-muted-foreground mt-1">Pure ML - Model discovers patterns from your data</p>
+          <p className="text-muted-foreground mt-1">Pure ML + Mathematical Modeling - Full Control</p>
         </div>
-        <div className="flex items-center gap-2">
-          {trainingStatus?.is_training && (
-            <Badge className="bg-success animate-pulse">TRAINING</Badge>
-          )}
-        </div>
+        {trainingStatus?.is_training && (
+          <Badge className="bg-success animate-pulse">TRAINING</Badge>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Training Configuration */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="font-mono text-lg flex items-center gap-2">
-              <Cpu className="w-5 h-5 text-primary" />
-              Training Configuration
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Configuration Panel */}
+        <Card className="lg:col-span-1 bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="font-mono text-base flex items-center gap-2">
+              <Settings className="w-4 h-4 text-primary" />
+              Configuration
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Mode Selection */}
             <div className="space-y-2">
-              <Label>Trading Pair</Label>
-              <Select value={symbol} onValueChange={setSymbol}>
+              <Label className="text-xs">Training Mode</Label>
+              <Select value={mode} onValueChange={setMode}>
                 <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pure_ml">Pure ML (Model Discovers)</SelectItem>
+                  <SelectItem value="mathematical">Mathematical Only</SelectItem>
+                  <SelectItem value="hybrid">Hybrid (ML + Math)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator />
+
+            {/* Data Selection */}
+            <div className="space-y-2">
+              <Label className="text-xs">Symbol</Label>
+              <Select value={symbol} onValueChange={setSymbol}>
+                <SelectTrigger className="bg-secondary border-border h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -166,9 +234,9 @@ const Training = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Timeframe</Label>
+              <Label className="text-xs">Timeframe</Label>
               <Select value={timeframe} onValueChange={setTimeframe}>
-                <SelectTrigger className="bg-secondary border-border">
+                <SelectTrigger className="bg-secondary border-border h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,290 +249,379 @@ const Training = () => {
               </Select>
             </div>
 
-            {/* Date Range Selection */}
+            {/* Date Range */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-2">
-                <Label>Start Date</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Start</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left bg-secondary border-border">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "MMM d, yyyy") : "Select"}
+                    <Button variant="outline" size="sm" className="w-full bg-secondary border-border text-xs">
+                      <CalendarIcon className="mr-1 h-3 w-3" />
+                      {startDate ? format(startDate, "MM/dd/yy") : "Select"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={setStartDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
+                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} /></PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-2">
-                <Label>End Date</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">End</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left bg-secondary border-border">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "MMM d, yyyy") : "Today"}
+                    <Button variant="outline" size="sm" className="w-full bg-secondary border-border text-xs">
+                      <CalendarIcon className="mr-1 h-3 w-3" />
+                      {endDate ? format(endDate, "MM/dd/yy") : "Today"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={setEndDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
+                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} /></PopoverContent>
                 </Popover>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-2">
-                <Label>Epochs</Label>
-                <Input
-                  type="number"
-                  value={epochs}
-                  onChange={(e) => setEpochs(parseInt(e.target.value))}
-                  className="bg-secondary border-border"
-                />
+              <div className="space-y-1">
+                <Label className="text-xs">Epochs</Label>
+                <Input type="number" value={epochs} onChange={(e) => setEpochs(parseInt(e.target.value))} className="bg-secondary border-border h-8 text-sm" />
               </div>
-              <div className="space-y-2">
-                <Label>Batch Size</Label>
-                <Input
-                  type="number"
-                  value={batchSize}
-                  onChange={(e) => setBatchSize(parseInt(e.target.value))}
-                  className="bg-secondary border-border"
-                />
+              <div className="space-y-1">
+                <Label className="text-xs">Batch Size</Label>
+                <Input type="number" value={batchSize} onChange={(e) => setBatchSize(parseInt(e.target.value))} className="bg-secondary border-border h-8 text-sm" />
               </div>
             </div>
 
-            <div className="pt-4">
+            <div className="pt-2">
               {trainingStatus?.is_training ? (
-                <Button
-                  variant="destructive"
-                  onClick={handleStopTraining}
-                  className="w-full"
-                >
-                  <Square className="w-4 h-4 mr-2" />
-                  Stop Training
+                <Button variant="destructive" onClick={handleStopTraining} className="w-full" size="sm">
+                  <Square className="w-3 h-3 mr-1" /> Stop
                 </Button>
               ) : (
-                <Button
-                  onClick={handleStartTraining}
-                  disabled={loading}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-primary"
-                >
-                  {loading ? (
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Play className="w-4 h-4 mr-2" />
-                  )}
+                <Button onClick={handleStartTraining} disabled={loading} className="w-full bg-primary hover:bg-primary/90 glow-primary" size="sm">
+                  {loading ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Play className="w-3 h-3 mr-1" />}
                   Start Training
                 </Button>
               )}
             </div>
-
-            {trainingStatus?.data_info && (
-              <div className="p-3 bg-secondary/50 rounded-lg text-sm">
-                <p className="text-muted-foreground">Training Data:</p>
-                <p className="font-mono text-xs mt-1">
-                  {trainingStatus.data_info.training_samples?.toLocaleString()} samples
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {trainingStatus.data_info.date_range?.start?.split(' ')[0]} → {trainingStatus.data_info.date_range?.end?.split(' ')[0]}
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
 
-        {/* Training Progress */}
-        <Card className="lg:col-span-2 bg-card border-border">
-          <CardHeader>
-            <CardTitle className="font-mono text-lg flex items-center gap-2">
-              <Activity className="w-5 h-5 text-primary" />
-              Training Progress
-              {trainingStatus?.is_training && (
-                <span className="ml-2 text-xs text-success animate-pulse">● Live</span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  Epoch {trainingStatus?.current_epoch || 0} / {trainingStatus?.total_epochs || 0}
-                </span>
-                <span className="font-mono text-primary">{progressPercent.toFixed(1)}%</span>
-              </div>
-              <Progress value={progressPercent} className="h-3" />
-            </div>
+        {/* Main Panel */}
+        <div className="lg:col-span-3 space-y-6">
+          <Tabs defaultValue="network" className="w-full">
+            <TabsList className="bg-secondary">
+              <TabsTrigger value="network" className="text-xs"><Layers className="w-3 h-3 mr-1" />Network</TabsTrigger>
+              <TabsTrigger value="strategies" className="text-xs"><Calculator className="w-3 h-3 mr-1" />Math Strategies</TabsTrigger>
+              <TabsTrigger value="progress" className="text-xs"><Activity className="w-3 h-3 mr-1" />Progress</TabsTrigger>
+              <TabsTrigger value="learned" className="text-xs"><Brain className="w-3 h-3 mr-1" />Learned</TabsTrigger>
+            </TabsList>
 
-            <div className="grid grid-cols-4 gap-4">
-              <div className="p-4 bg-secondary rounded-lg">
-                <p className="text-xs text-muted-foreground uppercase">Status</p>
-                <Badge className={trainingStatus?.is_training ? 'bg-success mt-2' : 'bg-secondary mt-2'}>
-                  {trainingStatus?.is_training ? 'Training' : 'Idle'}
-                </Badge>
-              </div>
-              <div className="p-4 bg-secondary rounded-lg">
-                <p className="text-xs text-muted-foreground uppercase">Loss</p>
-                <p className="text-xl font-bold font-mono mt-1">
-                  {trainingStatus?.current_loss?.toFixed(4) || '0.0000'}
-                </p>
-              </div>
-              <div className="p-4 bg-secondary rounded-lg">
-                <p className="text-xs text-muted-foreground uppercase">Accuracy</p>
-                <p className="text-xl font-bold font-mono text-success mt-1">
-                  {((trainingStatus?.current_accuracy || 0) * 100).toFixed(1)}%
-                </p>
-              </div>
-              <div className="p-4 bg-secondary rounded-lg">
-                <p className="text-xs text-muted-foreground uppercase">AUC</p>
-                <p className="text-xl font-bold font-mono text-primary mt-1">
-                  {trainingStatus?.history?.length > 0 
-                    ? (trainingStatus.history[trainingStatus.history.length - 1]?.auc * 100 || 0).toFixed(1) 
-                    : '0.0'}%
-                </p>
-              </div>
-            </div>
+            {/* Network Architecture Tab */}
+            <TabsContent value="network">
+              <Card className="bg-card border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="font-mono text-base">Network Architecture</CardTitle>
+                  <p className="text-xs text-muted-foreground">Configure the depth and size of your neural network</p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* LSTM Configuration */}
+                    <div className="space-y-4">
+                      <h4 className="font-mono text-sm text-primary">LSTM Layers</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span>Number of Layers</span>
+                          <span className="font-mono text-primary">{numLstmLayers}</span>
+                        </div>
+                        <Slider value={[numLstmLayers]} onValueChange={([v]) => setNumLstmLayers(v)} min={1} max={4} step={1} />
+                      </div>
+                      {[...Array(numLstmLayers)].map((_, i) => (
+                        <div key={i} className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span>Layer {i + 1} Units</span>
+                            <span className="font-mono">{lstmUnits[i] || 64}</span>
+                          </div>
+                          <Slider
+                            value={[lstmUnits[i] || 64]}
+                            onValueChange={([v]) => {
+                              const newUnits = [...lstmUnits];
+                              newUnits[i] = v;
+                              setLstmUnits(newUnits);
+                            }}
+                            min={16} max={256} step={16}
+                          />
+                        </div>
+                      ))}
+                    </div>
 
-            {/* Loss Curve */}
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trainingStatus?.history || []}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1F1F1F" />
-                  <XAxis dataKey="epoch" tick={{ fill: '#A1A1AA', fontSize: 10 }} />
-                  <YAxis tick={{ fill: '#A1A1AA', fontSize: 10 }} />
-                  <Tooltip contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #1F1F1F' }} />
-                  <Line type="monotone" dataKey="loss" stroke="#FF2E55" strokeWidth={2} dot={false} name="Train Loss" />
-                  <Line type="monotone" dataKey="val_loss" stroke="#00E5FF" strokeWidth={2} dot={false} name="Val Loss" />
-                  <Line type="monotone" dataKey="accuracy" stroke="#00FF94" strokeWidth={2} dot={false} name="Accuracy" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Learned Patterns - What the Model Discovered */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="font-mono text-lg flex items-center gap-2">
-            <Brain className="w-5 h-5 text-primary" />
-            Patterns Discovered by Model
-            <span className="text-xs text-muted-foreground font-normal ml-2">(No imposed conditions - pure ML learning)</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {learnedPatterns ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Model Equation */}
-              <div className="p-4 bg-secondary/50 rounded-lg border border-border">
-                <h3 className="font-mono font-semibold text-primary mb-3 flex items-center gap-2">
-                  <Zap className="w-4 h-4" />
-                  Model's Learned Equation
-                </h3>
-                <div className="bg-background/50 p-4 rounded font-mono text-sm">
-                  <p className="text-foreground">{learnedPatterns.model_equation || "P(up) = σ(LSTM(X) · W + b)"}</p>
-                </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  This equation was discovered by the model from your data, not imposed.
-                </p>
-              </div>
-
-              {/* Feature Importance Chart */}
-              <div className="p-4 bg-secondary/50 rounded-lg border border-border">
-                <h3 className="font-mono font-semibold text-primary mb-3 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  Feature Importance (Model Learned)
-                </h3>
-                {featureImportanceData.length > 0 ? (
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={featureImportanceData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1F1F1F" />
-                        <XAxis type="number" tick={{ fill: '#A1A1AA', fontSize: 10 }} />
-                        <YAxis dataKey="name" type="category" tick={{ fill: '#A1A1AA', fontSize: 9 }} width={100} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #1F1F1F' }} />
-                        <Bar dataKey="importance" fill="#00E5FF" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    {/* Dense Configuration */}
+                    <div className="space-y-4">
+                      <h4 className="font-mono text-sm text-primary">Dense Layers</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span>Number of Layers</span>
+                          <span className="font-mono text-primary">{numDenseLayers}</span>
+                        </div>
+                        <Slider value={[numDenseLayers]} onValueChange={([v]) => setNumDenseLayers(v)} min={1} max={4} step={1} />
+                      </div>
+                      {[...Array(numDenseLayers)].map((_, i) => (
+                        <div key={i} className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span>Layer {i + 1} Units</span>
+                            <span className="font-mono">{denseUnits[i] || 32}</span>
+                          </div>
+                          <Slider
+                            value={[denseUnits[i] || 32]}
+                            onValueChange={([v]) => {
+                              const newUnits = [...denseUnits];
+                              newUnits[i] = v;
+                              setDenseUnits(newUnits);
+                            }}
+                            min={8} max={128} step={8}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-8">Train model to see learned feature importance</p>
-                )}
-              </div>
 
-              {/* Learned Weights */}
-              {learnedPatterns.learned_weights && Object.keys(learnedPatterns.learned_weights).length > 0 && (
-                <div className="lg:col-span-2 p-4 bg-secondary/50 rounded-lg border border-border">
-                  <h3 className="font-mono font-semibold text-primary mb-3">Layer Weights Statistics</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(learnedPatterns.learned_weights).map(([layer, stats]) => (
-                      <div key={layer} className="p-3 bg-background/50 rounded">
-                        <p className="text-xs text-muted-foreground">{layer}</p>
-                        <p className="font-mono text-sm">μ: {stats.mean?.toFixed(4)}</p>
-                        <p className="font-mono text-sm">σ: {stats.std?.toFixed(4)}</p>
+                  <Separator />
+
+                  {/* Other Settings */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span>Dropout Rate</span>
+                        <span className="font-mono text-primary">{dropoutRate}</span>
+                      </div>
+                      <Slider value={[dropoutRate * 100]} onValueChange={([v]) => setDropoutRate(v / 100)} min={0} max={50} step={5} />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span>Learning Rate</span>
+                        <span className="font-mono text-primary">{learningRate}</span>
+                      </div>
+                      <Slider value={[Math.log10(learningRate) + 4]} onValueChange={([v]) => setLearningRate(Math.pow(10, v - 4))} min={1} max={3} step={0.5} />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span>Sequence Length</span>
+                        <span className="font-mono text-primary">{sequenceLength}</span>
+                      </div>
+                      <Slider value={[sequenceLength]} onValueChange={([v]) => setSequenceLength(v)} min={10} max={100} step={10} />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-6">
+                    <div className="flex items-center gap-2">
+                      <Switch checked={useAttention} onCheckedChange={setUseAttention} />
+                      <Label className="text-xs">Attention Mechanism</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch checked={useBatchNorm} onCheckedChange={setUseBatchNorm} />
+                      <Label className="text-xs">Batch Normalization</Label>
+                    </div>
+                  </div>
+
+                  {/* Architecture Summary */}
+                  <div className="p-3 bg-secondary/50 rounded-lg">
+                    <p className="text-xs font-mono text-muted-foreground">
+                      Architecture: Input → {numLstmLayers}x Bi-LSTM({lstmUnits.slice(0, numLstmLayers).join(',')}) 
+                      {useAttention && ' → Attention'} → {numDenseLayers}x Dense({denseUnits.slice(0, numDenseLayers).join(',')}) → Sigmoid
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Mathematical Strategies Tab */}
+            <TabsContent value="strategies">
+              <Card className="bg-card border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="font-mono text-base flex items-center gap-2">
+                    <Sigma className="w-4 h-4" />
+                    Mathematical Strategies
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">Renaissance-style quantitative strategies (used in Mathematical/Hybrid modes)</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {MATH_STRATEGIES.map((strategy) => (
+                      <div
+                        key={strategy.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                          selectedStrategies.includes(strategy.id)
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border bg-secondary/30 hover:border-primary/50'
+                        }`}
+                        onClick={() => toggleStrategy(strategy.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Checkbox checked={selectedStrategies.includes(strategy.id)} />
+                          <span className="font-mono text-sm">{strategy.name}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{strategy.description}</p>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Brain className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Train the model to discover patterns from your data</p>
-              <p className="text-xs text-muted-foreground mt-2">No pre-defined formulas - model learns everything</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+                  {/* Math Signals Display */}
+                  {mathSignals && (
+                    <div className="mt-6 space-y-3">
+                      <h4 className="font-mono text-sm text-primary">Calculated Signals</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {Object.entries(mathSignals).filter(([k]) => k !== 'aggregate').map(([name, data]) => (
+                          <div key={name} className="p-3 bg-secondary/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground capitalize">{name.replace(/_/g, ' ')}</p>
+                            {data.signal !== undefined && (
+                              <Badge className={data.signal > 0 ? 'bg-success mt-1' : data.signal < 0 ? 'bg-destructive mt-1' : 'bg-secondary mt-1'}>
+                                {data.signal > 0 ? 'BUY' : data.signal < 0 ? 'SELL' : 'HOLD'}
+                              </Badge>
+                            )}
+                            {data.formula && <p className="text-xs font-mono mt-2 text-muted-foreground">{data.formula}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Progress Tab */}
+            <TabsContent value="progress">
+              <Card className="bg-card border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="font-mono text-base">Training Progress</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Epoch {trainingStatus?.current_epoch || 0} / {trainingStatus?.total_epochs || 0}</span>
+                      <span className="font-mono text-primary">{progressPercent.toFixed(1)}%</span>
+                    </div>
+                    <Progress value={progressPercent} className="h-2" />
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-3">
+                    <div className="p-3 bg-secondary rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">Mode</p>
+                      <Badge className="mt-1">{trainingStatus?.mode || mode}</Badge>
+                    </div>
+                    <div className="p-3 bg-secondary rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">Loss</p>
+                      <p className="font-mono text-lg">{trainingStatus?.current_loss?.toFixed(4) || '0.0000'}</p>
+                    </div>
+                    <div className="p-3 bg-secondary rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">Accuracy</p>
+                      <p className="font-mono text-lg text-success">{((trainingStatus?.current_accuracy || 0) * 100).toFixed(1)}%</p>
+                    </div>
+                    <div className="p-3 bg-secondary rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">Samples</p>
+                      <p className="font-mono text-lg">{trainingStatus?.data_info?.training_samples?.toLocaleString() || 0}</p>
+                    </div>
+                  </div>
+
+                  {/* Loss Curve */}
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={trainingStatus?.history || []}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1F1F1F" />
+                        <XAxis dataKey="epoch" tick={{ fill: '#A1A1AA', fontSize: 10 }} />
+                        <YAxis tick={{ fill: '#A1A1AA', fontSize: 10 }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #1F1F1F' }} />
+                        <Line type="monotone" dataKey="loss" stroke="#FF2E55" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="val_loss" stroke="#00E5FF" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="accuracy" stroke="#00FF94" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Learned Patterns Tab */}
+            <TabsContent value="learned">
+              <Card className="bg-card border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="font-mono text-base">Patterns Discovered by Model</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {learnedPatterns ? (
+                    <div className="space-y-6">
+                      {/* Equation */}
+                      <div className="p-4 bg-secondary/50 rounded-lg">
+                        <h4 className="font-mono text-sm text-primary mb-2 flex items-center gap-2">
+                          <Zap className="w-4 h-4" /> Model's Learned Equation
+                        </h4>
+                        <p className="font-mono text-sm">{learnedPatterns.model_equation}</p>
+                      </div>
+
+                      {/* Feature Importance */}
+                      {featureImportanceData.length > 0 && (
+                        <div className="h-48">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={featureImportanceData} layout="vertical">
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1F1F1F" />
+                              <XAxis type="number" tick={{ fill: '#A1A1AA', fontSize: 10 }} />
+                              <YAxis dataKey="name" type="category" tick={{ fill: '#A1A1AA', fontSize: 9 }} width={120} />
+                              <Tooltip contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #1F1F1F' }} />
+                              <Bar dataKey="importance" fill="#00E5FF" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+
+                      {/* Weights */}
+                      {learnedPatterns.learned_weights && (
+                        <div className="grid grid-cols-4 gap-3">
+                          {Object.entries(learnedPatterns.learned_weights).map(([layer, stats]) => (
+                            <div key={layer} className="p-2 bg-secondary/50 rounded">
+                              <p className="text-xs text-muted-foreground">{layer}</p>
+                              <p className="font-mono text-xs">μ={stats.mean?.toFixed(3)} σ={stats.std?.toFixed(3)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Brain className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Train the model to see discovered patterns</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
 
       {/* Training History */}
       <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="font-mono text-lg flex items-center gap-2">
-            <Clock className="w-5 h-5 text-primary" />
-            Training History
+        <CardHeader className="pb-2">
+          <CardTitle className="font-mono text-base flex items-center gap-2">
+            <Clock className="w-4 h-4 text-primary" /> Training History
           </CardTitle>
         </CardHeader>
         <CardContent>
           {trainingHistory.length > 0 ? (
-            <div className="space-y-3">
-              {trainingHistory.map((session, index) => (
-                <div key={index} className="p-4 bg-secondary rounded-lg flex items-center justify-between">
-                  <div>
-                    <p className="font-mono font-semibold">{session.symbol}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(session.created_at).toLocaleString()}
-                    </p>
-                    {session.data_info && (
-                      <p className="text-xs text-muted-foreground">
-                        {session.data_info.training_samples || 0} samples • {session.data_info.timeframe || '1h'}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <Badge className={session.result?.status === 'completed' ? 'bg-success' : 'bg-warning'}>
-                      {session.result?.status || 'unknown'}
-                    </Badge>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Acc: {((session.result?.final_accuracy || session.result?.best_accuracy || 0) * 100).toFixed(1)}%
-                    </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {trainingHistory.map((session, i) => (
+                <div key={i} className="p-3 bg-secondary rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-mono text-sm">{session.symbol}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(session.created_at).toLocaleString()}</p>
+                      <Badge className="mt-1 text-xs" variant="outline">{session.config?.mode || 'pure_ml'}</Badge>
+                    </div>
+                    <div className="text-right">
+                      <Badge className={session.result?.status === 'completed' ? 'bg-success' : 'bg-warning'}>
+                        {((session.result?.best_accuracy || session.result?.final_accuracy || 0) * 100).toFixed(1)}%
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-center py-8">No training history yet</p>
+            <p className="text-center text-muted-foreground py-4">No training history yet</p>
           )}
         </CardContent>
       </Card>
