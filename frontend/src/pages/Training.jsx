@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -20,18 +21,20 @@ import {
 import {
   Play, Square, RefreshCw, Brain, Activity, Clock, Cpu,
   CalendarIcon, TrendingUp, Zap, Layers, Settings, Calculator,
-  GitBranch, Sigma, Network, StopCircle, PlayCircle
+  GitBranch, Sigma, Network, StopCircle, PlayCircle, Save,
+  FolderOpen, Database, Sparkles, Target, BarChart3, Shuffle
 } from "lucide-react";
 import { format } from "date-fns";
 import { API } from "@/lib/api";
 
+// API functions
 const startAdvancedTraining = async (config) => {
-  const response = await API.post('/training/start', config);
+  const response = await API.post('/training/advanced/start', config);
   return response.data;
 };
 
-const getTrainingStatus = async () => {
-  const response = await API.get('/training/status');
+const getAdvancedTrainingStatus = async () => {
+  const response = await API.get('/training/advanced/status');
   return response.data;
 };
 
@@ -42,6 +45,16 @@ const getTrainingHistory = async () => {
 
 const stopTraining = async () => {
   const response = await API.post('/training/stop');
+  return response.data;
+};
+
+const getSavedModels = async () => {
+  const response = await API.get('/models/saved');
+  return response.data;
+};
+
+const loadSavedModel = async (modelPath) => {
+  const response = await API.post('/models/load', null, { params: { model_path: modelPath } });
   return response.data;
 };
 
@@ -56,10 +69,17 @@ const MATH_STRATEGIES = [
 ];
 
 const NETWORK_TYPES = [
-  { id: "lstm", name: "LSTM", description: "Long Short-Term Memory - Best for sequences" },
-  { id: "gru", name: "GRU", description: "Gated Recurrent Unit - Faster training" },
-  { id: "transformer", name: "Transformer", description: "Attention-based (coming soon)", disabled: true },
-  { id: "cnn_lstm", name: "CNN + LSTM", description: "Conv + Recurrent hybrid (coming soon)", disabled: true },
+  { id: "lstm", name: "LSTM", description: "Long Short-Term Memory - Best for sequences", icon: "🧠" },
+  { id: "gru", name: "GRU", description: "Gated Recurrent Unit - Faster training", icon: "⚡" },
+  { id: "transformer", name: "Transformer", description: "Multi-head Attention - State of art", icon: "🔮" },
+  { id: "cnn_lstm", name: "CNN + LSTM", description: "Convolutional + Recurrent hybrid", icon: "🔗" },
+  { id: "ensemble", name: "Ensemble", description: "LSTM + XGBoost + RandomForest", icon: "🎯" },
+];
+
+const LR_SCHEDULES = [
+  { id: "reduce_plateau", name: "Reduce on Plateau", description: "Reduce LR when loss plateaus" },
+  { id: "cosine", name: "Cosine Annealing", description: "Smooth cosine decay" },
+  { id: "step", name: "Step Decay", description: "Reduce LR every N epochs" },
 ];
 
 const Training = () => {
@@ -88,12 +108,25 @@ const Training = () => {
   const [learningRate, setLearningRate] = useState(0.001);
   const [sequenceLength, setSequenceLength] = useState(50);
   
+  // Advanced options
+  const [useEarlyStopping, setUseEarlyStopping] = useState(true);
+  const [earlyStoppingPatience, setEarlyStoppingPatience] = useState(15);
+  const [lrSchedule, setLrSchedule] = useState("reduce_plateau");
+  const [useWalkForward, setUseWalkForward] = useState(false);
+  const [cvFolds, setCvFolds] = useState(5);
+  const [useOptuna, setUseOptuna] = useState(false);
+  const [optunTrials, setOptunTrials] = useState(20);
+  const [classBalanceMethod, setClassBalanceMethod] = useState("class_weight");
+  const [multiTimeframe, setMultiTimeframe] = useState(false);
+  const [saveModel, setSaveModel] = useState(true);
+  
   // Strategies
   const [selectedStrategies, setSelectedStrategies] = useState([]);
   
   // Status
   const [trainingStatus, setTrainingStatus] = useState(null);
   const [trainingHistory, setTrainingHistory] = useState([]);
+  const [savedModels, setSavedModels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [learnedPatterns, setLearnedPatterns] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -102,7 +135,7 @@ const Training = () => {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const status = await getTrainingStatus();
+      const status = await getAdvancedTrainingStatus();
       setTrainingStatus(status);
       if (status.learned_patterns) setLearnedPatterns(status.learned_patterns);
     } catch (error) {
@@ -119,12 +152,22 @@ const Training = () => {
     }
   }, []);
 
+  const fetchSavedModels = useCallback(async () => {
+    try {
+      const result = await getSavedModels();
+      setSavedModels(result.models || []);
+    } catch (error) {
+      console.error("Error fetching saved models:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchHistory();
     fetchStatus();
-  }, [fetchHistory, fetchStatus]);
+    fetchSavedModels();
+  }, [fetchHistory, fetchStatus, fetchSavedModels]);
 
-  // Real-time status polling - every second when training
+  // Real-time status polling
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     const pollInterval = trainingStatus?.is_training ? 1000 : 5000;
@@ -162,6 +205,7 @@ const Training = () => {
         end_date: endDate ? endDate.toISOString() : null,
         timeframe,
         mode,
+        network_type: networkType,
         strategies: selectedStrategies,
         num_lstm_layers: numLstmLayers,
         lstm_units: lstmUnits.slice(0, numLstmLayers),
@@ -171,37 +215,49 @@ const Training = () => {
         use_attention: useAttention,
         use_batch_norm: useBatchNorm,
         learning_rate: learningRate,
-        sequence_length: sequenceLength
+        sequence_length: sequenceLength,
+        use_early_stopping: useEarlyStopping,
+        early_stopping_patience: earlyStoppingPatience,
+        lr_schedule: lrSchedule,
+        use_walk_forward: useWalkForward,
+        cv_folds: cvFolds,
+        use_optuna: useOptuna,
+        optuna_trials: optunTrials,
+        class_balance_method: classBalanceMethod,
+        multi_timeframe: multiTimeframe,
+        save_model: saveModel
       };
       
       const result = await startAdvancedTraining(config);
-      toast.success(`Training started! ${result.config?.total_samples || 0} samples loaded`);
-      
-      // Immediately fetch status to update UI
+      toast.success(`Training started with ${networkType.toUpperCase()} model!`);
       setTimeout(fetchStatus, 500);
     } catch (error) {
       const errorMsg = error.response?.data?.detail || "Failed to start training";
       toast.error(errorMsg);
-      console.error("Training start error:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleStopTraining = async () => {
-    if (!trainingStatus?.is_training) {
-      toast.info("No training in progress");
-      return;
-    }
-    
     try {
       await stopTraining();
       toast.success("Training stopped");
       fetchStatus();
       fetchHistory();
+      fetchSavedModels();
     } catch (error) {
       toast.error("Failed to stop training");
-      console.error("Training stop error:", error);
+    }
+  };
+
+  const handleLoadModel = async (modelPath) => {
+    try {
+      await loadSavedModel(modelPath);
+      toast.success("Model loaded successfully");
+      fetchStatus();
+    } catch (error) {
+      toast.error("Failed to load model");
     }
   };
 
@@ -223,306 +279,605 @@ const Training = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const isTraining = trainingStatus?.is_training;
+
   const featureImportanceData = learnedPatterns?.feature_importance
     ? Object.entries(learnedPatterns.feature_importance).slice(0, 8)
         .map(([name, value]) => ({ name: name.replace(/_/g, ' '), importance: value }))
     : [];
-
-  const isTraining = trainingStatus?.is_training;
 
   return (
     <div data-testid="training-page" className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground font-mono">Model Training</h1>
-          <p className="text-muted-foreground mt-1">Deep Learning Training Center</p>
+          <h1 className="text-3xl font-bold text-foreground font-mono">Advanced Model Training</h1>
+          <p className="text-muted-foreground mt-1">Deep Learning Training Center with Multiple Architectures</p>
         </div>
         {isTraining && (
           <Badge className="bg-success animate-pulse text-lg px-4 py-1">TRAINING IN PROGRESS</Badge>
         )}
       </div>
 
-      {/* ==================== SECTION 1: CONFIGURATION ==================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        
-        {/* Training Configuration */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="font-mono text-base flex items-center gap-2">
-              <Settings className="w-4 h-4 text-primary" />
-              Training Configuration
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Mode Selection */}
-            <div className="space-y-2">
-              <Label className="text-xs">Training Mode</Label>
-              <Select value={mode} onValueChange={setMode} disabled={isTraining}>
-                <SelectTrigger className="bg-secondary border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pure_ml">Pure ML (Model Discovers)</SelectItem>
-                  <SelectItem value="mathematical">Mathematical Only</SelectItem>
-                  <SelectItem value="hybrid">Hybrid (ML + Math)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      {/* Main Tabs */}
+      <Tabs defaultValue="config" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="config" className="gap-2"><Settings className="w-4 h-4" /> Configuration</TabsTrigger>
+          <TabsTrigger value="advanced" className="gap-2"><Sparkles className="w-4 h-4" /> Advanced Options</TabsTrigger>
+          <TabsTrigger value="models" className="gap-2"><Database className="w-4 h-4" /> Saved Models</TabsTrigger>
+          <TabsTrigger value="history" className="gap-2"><Clock className="w-4 h-4" /> History</TabsTrigger>
+        </TabsList>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Symbol</Label>
-                <Select value={symbol} onValueChange={setSymbol} disabled={isTraining}>
-                  <SelectTrigger className="bg-secondary border-border h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BTC/USDT">BTC/USDT</SelectItem>
-                    <SelectItem value="ETH/USDT">ETH/USDT</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Timeframe</Label>
-                <Select value={timeframe} onValueChange={setTimeframe} disabled={isTraining}>
-                  <SelectTrigger className="bg-secondary border-border h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5m">5 Minutes</SelectItem>
-                    <SelectItem value="15m">15 Minutes</SelectItem>
-                    <SelectItem value="1h">1 Hour</SelectItem>
-                    <SelectItem value="4h">4 Hours</SelectItem>
-                    <SelectItem value="1d">1 Day</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+        {/* ==================== CONFIGURATION TAB ==================== */}
+        <TabsContent value="config" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            {/* Training Configuration */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-primary" />
+                  Training Config
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs">Training Mode</Label>
+                  <Select value={mode} onValueChange={setMode} disabled={isTraining}>
+                    <SelectTrigger className="bg-secondary border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pure_ml">Pure ML (Model Discovers)</SelectItem>
+                      <SelectItem value="mathematical">Mathematical Only</SelectItem>
+                      <SelectItem value="hybrid">Hybrid (ML + Math)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Date Range */}
-            <div className="space-y-2">
-              <Label className="text-xs">Historical Data Range</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-full bg-secondary border-border text-xs justify-start" disabled={isTraining}>
-                      <CalendarIcon className="mr-2 h-3 w-3" />
-                      {startDate ? format(startDate, "MMM dd, yy") : "Start"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} /></PopoverContent>
-                </Popover>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-full bg-secondary border-border text-xs justify-start" disabled={isTraining}>
-                      <CalendarIcon className="mr-2 h-3 w-3" />
-                      {endDate ? format(endDate, "MMM dd, yy") : "End"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} /></PopoverContent>
-                </Popover>
-              </div>
-            </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Symbol</Label>
+                    <Select value={symbol} onValueChange={setSymbol} disabled={isTraining}>
+                      <SelectTrigger className="bg-secondary border-border h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BTC/USDT">BTC/USDT</SelectItem>
+                        <SelectItem value="ETH/USDT">ETH/USDT</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Timeframe</Label>
+                    <Select value={timeframe} onValueChange={setTimeframe} disabled={isTraining}>
+                      <SelectTrigger className="bg-secondary border-border h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5m">5 Minutes</SelectItem>
+                        <SelectItem value="15m">15 Minutes</SelectItem>
+                        <SelectItem value="1h">1 Hour</SelectItem>
+                        <SelectItem value="4h">4 Hours</SelectItem>
+                        <SelectItem value="1d">1 Day</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Epochs</Label>
-                <Input type="number" value={epochs} onChange={(e) => setEpochs(parseInt(e.target.value) || 100)} className="bg-secondary border-border h-9" disabled={isTraining} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Batch Size</Label>
-                <Input type="number" value={batchSize} onChange={(e) => setBatchSize(parseInt(e.target.value) || 32)} className="bg-secondary border-border h-9" disabled={isTraining} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <div className="space-y-2">
+                  <Label className="text-xs">Date Range</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full bg-secondary border-border text-xs justify-start" disabled={isTraining}>
+                          <CalendarIcon className="mr-1 h-3 w-3" />
+                          {startDate ? format(startDate, "MMM dd") : "Start"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} /></PopoverContent>
+                    </Popover>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full bg-secondary border-border text-xs justify-start" disabled={isTraining}>
+                          <CalendarIcon className="mr-1 h-3 w-3" />
+                          {endDate ? format(endDate, "MMM dd") : "End"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} /></PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
 
-        {/* Network Architecture */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="font-mono text-base flex items-center gap-2">
-              <Network className="w-4 h-4 text-primary" />
-              Network Architecture
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Network Type */}
-            <div className="space-y-2">
-              <Label className="text-xs">Network Type</Label>
-              <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Epochs</Label>
+                    <Input type="number" value={epochs} onChange={(e) => setEpochs(parseInt(e.target.value) || 100)} className="bg-secondary border-border h-9" disabled={isTraining} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Batch Size</Label>
+                    <Input type="number" value={batchSize} onChange={(e) => setBatchSize(parseInt(e.target.value) || 32)} className="bg-secondary border-border h-9" disabled={isTraining} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Network Type Selection */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Network className="w-4 h-4 text-primary" />
+                  Network Type
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 {NETWORK_TYPES.map((type) => (
                   <div
                     key={type.id}
-                    className={`p-2 rounded border cursor-pointer transition-all text-center ${
-                      type.disabled ? 'opacity-40 cursor-not-allowed' :
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
                       networkType === type.id
+                        ? 'border-primary bg-primary/10 shadow-lg shadow-primary/20'
+                        : 'border-border bg-secondary/30 hover:border-primary/50'
+                    } ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => !isTraining && setNetworkType(type.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{type.icon}</span>
+                      <div className="flex-1">
+                        <p className="font-mono text-sm font-semibold">{type.name}</p>
+                        <p className="text-xs text-muted-foreground">{type.description}</p>
+                      </div>
+                      {networkType === type.id && (
+                        <Badge className="bg-primary">Selected</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Network Layers */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-primary" />
+                  Network Layers
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs">LSTM/GRU Layers</Label>
+                    <Badge variant="outline" className="font-mono text-xs">{numLstmLayers}</Badge>
+                  </div>
+                  <Slider value={[numLstmLayers]} onValueChange={([v]) => setNumLstmLayers(v)} min={1} max={4} step={1} disabled={isTraining} />
+                  {[...Array(numLstmLayers)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-xs w-10">L{i + 1}:</span>
+                      <Slider
+                        className="flex-1"
+                        value={[lstmUnits[i] || 64]}
+                        onValueChange={([v]) => {
+                          const newUnits = [...lstmUnits];
+                          newUnits[i] = v;
+                          setLstmUnits(newUnits);
+                        }}
+                        min={16} max={256} step={16}
+                        disabled={isTraining}
+                      />
+                      <span className="font-mono text-xs w-8 text-right text-primary">{lstmUnits[i] || 64}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs">Dense Layers</Label>
+                    <Badge variant="outline" className="font-mono text-xs">{numDenseLayers}</Badge>
+                  </div>
+                  <Slider value={[numDenseLayers]} onValueChange={([v]) => setNumDenseLayers(v)} min={1} max={4} step={1} disabled={isTraining} />
+                  {[...Array(numDenseLayers)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-xs w-10">L{i + 1}:</span>
+                      <Slider
+                        className="flex-1"
+                        value={[denseUnits[i] || 32]}
+                        onValueChange={([v]) => {
+                          const newUnits = [...denseUnits];
+                          newUnits[i] = v;
+                          setDenseUnits(newUnits);
+                        }}
+                        min={8} max={128} step={8}
+                        disabled={isTraining}
+                      />
+                      <span className="font-mono text-xs w-8 text-right text-primary">{denseUnits[i] || 32}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Architecture Summary */}
+                <div className="p-2 bg-primary/10 rounded border border-primary/30">
+                  <p className="text-xs font-mono text-primary">
+                    {networkType === 'ensemble' 
+                      ? 'LSTM + XGBoost + RandomForest Ensemble'
+                      : `Input → ${numLstmLayers}x ${networkType.toUpperCase()}(${lstmUnits.slice(0, numLstmLayers).join(',')}) ${useAttention ? '→ Attn' : ''} → ${numDenseLayers}x Dense(${denseUnits.slice(0, numDenseLayers).join(',')}) → Out`
+                    }
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Hyperparameters */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Cpu className="w-4 h-4 text-primary" />
+                  Hyperparameters
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <Label>Dropout Rate</Label>
+                    <span className="font-mono text-primary">{dropoutRate.toFixed(2)}</span>
+                  </div>
+                  <Slider value={[dropoutRate * 100]} onValueChange={([v]) => setDropoutRate(v / 100)} min={0} max={50} step={5} disabled={isTraining} />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <Label>Learning Rate</Label>
+                    <span className="font-mono text-primary">{learningRate.toFixed(4)}</span>
+                  </div>
+                  <Slider value={[Math.log10(learningRate) + 4]} onValueChange={([v]) => setLearningRate(Math.pow(10, v - 4))} min={1} max={3} step={0.5} disabled={isTraining} />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <Label>Sequence Length</Label>
+                    <span className="font-mono text-primary">{sequenceLength}</span>
+                  </div>
+                  <Slider value={[sequenceLength]} onValueChange={([v]) => setSequenceLength(v)} min={10} max={100} step={10} disabled={isTraining} />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Attention Mechanism</Label>
+                    <Switch checked={useAttention} onCheckedChange={setUseAttention} disabled={isTraining} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Batch Normalization</Label>
+                    <Switch checked={useBatchNorm} onCheckedChange={setUseBatchNorm} disabled={isTraining} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Save Model After Training</Label>
+                    <Switch checked={saveModel} onCheckedChange={setSaveModel} disabled={isTraining} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Mathematical Strategies */}
+          {(mode === 'mathematical' || mode === 'hybrid') && (
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Calculator className="w-4 h-4 text-primary" />
+                  Mathematical Strategies
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                  {MATH_STRATEGIES.map((strategy) => (
+                    <div
+                      key={strategy.id}
+                      className={`p-3 rounded border cursor-pointer transition-all ${
+                        selectedStrategies.includes(strategy.id)
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-secondary/30 hover:border-primary/50'
+                      } ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={() => !isTraining && toggleStrategy(strategy.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Checkbox checked={selectedStrategies.includes(strategy.id)} disabled={isTraining} />
+                        <span className="font-mono text-xs">{strategy.name}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* ==================== ADVANCED OPTIONS TAB ==================== */}
+        <TabsContent value="advanced" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Training Process */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Target className="w-4 h-4 text-primary" />
+                  Training Process
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                  <div>
+                    <Label className="text-sm">Early Stopping</Label>
+                    <p className="text-xs text-muted-foreground">Stop when validation loss plateaus</p>
+                  </div>
+                  <Switch checked={useEarlyStopping} onCheckedChange={setUseEarlyStopping} disabled={isTraining} />
+                </div>
+
+                {useEarlyStopping && (
+                  <div className="space-y-2 pl-4 border-l-2 border-primary/30">
+                    <div className="flex justify-between text-xs">
+                      <Label>Patience (epochs)</Label>
+                      <span className="font-mono text-primary">{earlyStoppingPatience}</span>
+                    </div>
+                    <Slider value={[earlyStoppingPatience]} onValueChange={([v]) => setEarlyStoppingPatience(v)} min={5} max={30} step={5} disabled={isTraining} />
+                  </div>
+                )}
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Learning Rate Schedule</Label>
+                  <Select value={lrSchedule} onValueChange={setLrSchedule} disabled={isTraining}>
+                    <SelectTrigger className="bg-secondary border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LR_SCHEDULES.map((schedule) => (
+                        <SelectItem key={schedule.id} value={schedule.id}>
+                          {schedule.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {LR_SCHEDULES.find(s => s.id === lrSchedule)?.description}
+                  </p>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                  <div>
+                    <Label className="text-sm">Multi-Timeframe</Label>
+                    <p className="text-xs text-muted-foreground">Use 5m, 15m, 1h, 4h, 1d data</p>
+                  </div>
+                  <Switch checked={multiTimeframe} onCheckedChange={setMultiTimeframe} disabled={isTraining} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Validation & Search */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                  Validation & Search
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                  <div>
+                    <Label className="text-sm">Walk-Forward Validation</Label>
+                    <p className="text-xs text-muted-foreground">Time-series cross-validation</p>
+                  </div>
+                  <Switch checked={useWalkForward} onCheckedChange={setUseWalkForward} disabled={isTraining} />
+                </div>
+
+                {useWalkForward && (
+                  <div className="space-y-2 pl-4 border-l-2 border-primary/30">
+                    <div className="flex justify-between text-xs">
+                      <Label>CV Folds</Label>
+                      <span className="font-mono text-primary">{cvFolds}</span>
+                    </div>
+                    <Slider value={[cvFolds]} onValueChange={([v]) => setCvFolds(v)} min={3} max={10} step={1} disabled={isTraining} />
+                  </div>
+                )}
+
+                <Separator />
+
+                <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                  <div>
+                    <Label className="text-sm">Optuna Hyperparameter Search</Label>
+                    <p className="text-xs text-muted-foreground">Auto-tune model parameters</p>
+                  </div>
+                  <Switch checked={useOptuna} onCheckedChange={setUseOptuna} disabled={isTraining} />
+                </div>
+
+                {useOptuna && (
+                  <div className="space-y-2 pl-4 border-l-2 border-primary/30">
+                    <div className="flex justify-between text-xs">
+                      <Label>Number of Trials</Label>
+                      <span className="font-mono text-primary">{optunTrials}</span>
+                    </div>
+                    <Slider value={[optunTrials]} onValueChange={([v]) => setOptunTrials(v)} min={10} max={50} step={5} disabled={isTraining} />
+                    <p className="text-xs text-muted-foreground">More trials = better params but longer time</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Class Balancing */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Shuffle className="w-4 h-4 text-primary" />
+                  Class Balancing
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Handle imbalanced up/down days in training data
+                </p>
+
+                <div className="space-y-3">
+                  <div
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      classBalanceMethod === 'class_weight'
                         ? 'border-primary bg-primary/10'
                         : 'border-border bg-secondary/30 hover:border-primary/50'
                     }`}
-                    onClick={() => !type.disabled && !isTraining && setNetworkType(type.id)}
+                    onClick={() => !isTraining && setClassBalanceMethod('class_weight')}
                   >
-                    <p className="font-mono text-xs font-semibold">{type.name}</p>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${classBalanceMethod === 'class_weight' ? 'bg-primary' : 'bg-muted'}`}></div>
+                      <div>
+                        <p className="font-mono text-sm">Class Weights</p>
+                        <p className="text-xs text-muted-foreground">Adjust loss function weights (recommended)</p>
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Architecture Summary */}
-            <div className="p-2 bg-primary/10 rounded border border-primary/30">
-              <p className="text-xs font-mono text-primary">
-                Input → {numLstmLayers}x Bi-LSTM({lstmUnits.slice(0, numLstmLayers).join(',')}) 
-                {useAttention && ' → Attn'} → {numDenseLayers}x Dense({denseUnits.slice(0, numDenseLayers).join(',')}) → Out
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Network Layers */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="font-mono text-base flex items-center gap-2">
-              <Layers className="w-4 h-4 text-primary" />
-              Network Layers
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* LSTM Layers */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label className="text-xs">LSTM Layers</Label>
-                <Badge variant="outline" className="font-mono text-xs">{numLstmLayers}</Badge>
-              </div>
-              <Slider value={[numLstmLayers]} onValueChange={([v]) => setNumLstmLayers(v)} min={1} max={4} step={1} disabled={isTraining} />
-              {[...Array(numLstmLayers)].map((_, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-xs w-10">L{i + 1}:</span>
-                  <Slider
-                    className="flex-1"
-                    value={[lstmUnits[i] || 64]}
-                    onValueChange={([v]) => {
-                      const newUnits = [...lstmUnits];
-                      newUnits[i] = v;
-                      setLstmUnits(newUnits);
-                    }}
-                    min={16} max={256} step={16}
-                    disabled={isTraining}
-                  />
-                  <span className="font-mono text-xs w-8 text-right text-primary">{lstmUnits[i] || 64}</span>
-                </div>
-              ))}
-            </div>
-
-            <Separator />
-
-            {/* Dense Layers */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label className="text-xs">Dense Layers</Label>
-                <Badge variant="outline" className="font-mono text-xs">{numDenseLayers}</Badge>
-              </div>
-              <Slider value={[numDenseLayers]} onValueChange={([v]) => setNumDenseLayers(v)} min={1} max={4} step={1} disabled={isTraining} />
-              {[...Array(numDenseLayers)].map((_, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-xs w-10">L{i + 1}:</span>
-                  <Slider
-                    className="flex-1"
-                    value={[denseUnits[i] || 32]}
-                    onValueChange={([v]) => {
-                      const newUnits = [...denseUnits];
-                      newUnits[i] = v;
-                      setDenseUnits(newUnits);
-                    }}
-                    min={8} max={128} step={8}
-                    disabled={isTraining}
-                  />
-                  <span className="font-mono text-xs w-8 text-right text-primary">{denseUnits[i] || 32}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Hyperparameters */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="font-mono text-base flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-primary" />
-              Hyperparameters
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <Label>Dropout Rate</Label>
-                <span className="font-mono text-primary">{dropoutRate.toFixed(2)}</span>
-              </div>
-              <Slider value={[dropoutRate * 100]} onValueChange={([v]) => setDropoutRate(v / 100)} min={0} max={50} step={5} disabled={isTraining} />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <Label>Learning Rate</Label>
-                <span className="font-mono text-primary">{learningRate.toFixed(4)}</span>
-              </div>
-              <Slider value={[Math.log10(learningRate) + 4]} onValueChange={([v]) => setLearningRate(Math.pow(10, v - 4))} min={1} max={3} step={0.5} disabled={isTraining} />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <Label>Sequence Length</Label>
-                <span className="font-mono text-primary">{sequenceLength}</span>
-              </div>
-              <Slider value={[sequenceLength]} onValueChange={([v]) => setSequenceLength(v)} min={10} max={100} step={10} disabled={isTraining} />
-            </div>
-
-            <Separator />
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Attention Mechanism</Label>
-                <Switch checked={useAttention} onCheckedChange={setUseAttention} disabled={isTraining} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Batch Normalization</Label>
-                <Switch checked={useBatchNorm} onCheckedChange={setUseBatchNorm} disabled={isTraining} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Mathematical Strategies (conditional) */}
-      {(mode === 'mathematical' || mode === 'hybrid') && (
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="font-mono text-base flex items-center gap-2">
-              <Calculator className="w-4 h-4 text-primary" />
-              Mathematical Strategies
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-              {MATH_STRATEGIES.map((strategy) => (
-                <div
-                  key={strategy.id}
-                  className={`p-3 rounded border cursor-pointer transition-all ${
-                    selectedStrategies.includes(strategy.id)
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border bg-secondary/30 hover:border-primary/50'
-                  } ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={() => !isTraining && toggleStrategy(strategy.id)}
-                >
-                  <div className="flex items-center gap-2">
-                    <Checkbox checked={selectedStrategies.includes(strategy.id)} disabled={isTraining} />
-                    <span className="font-mono text-xs">{strategy.name}</span>
+                  <div
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      classBalanceMethod === 'smote'
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border bg-secondary/30 hover:border-primary/50'
+                    }`}
+                    onClick={() => !isTraining && setClassBalanceMethod('smote')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${classBalanceMethod === 'smote' ? 'bg-primary' : 'bg-muted'}`}></div>
+                      <div>
+                        <p className="font-mono text-sm">SMOTE Oversampling</p>
+                        <p className="text-xs text-muted-foreground">Generate synthetic minority samples</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
+                <Separator />
+
+                {/* Feature Summary */}
+                <div className="p-3 bg-secondary/30 rounded-lg">
+                  <h4 className="font-mono text-xs text-muted-foreground mb-2">Active Features:</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {!useEarlyStopping && <Badge variant="outline" className="text-xs">No Early Stop</Badge>}
+                    {useWalkForward && <Badge variant="outline" className="text-xs">Walk-Forward CV</Badge>}
+                    {useOptuna && <Badge variant="outline" className="text-xs">Optuna Search</Badge>}
+                    {multiTimeframe && <Badge variant="outline" className="text-xs">Multi-TF</Badge>}
+                    <Badge variant="outline" className="text-xs">{classBalanceMethod === 'smote' ? 'SMOTE' : 'Class Weights'}</Badge>
+                    <Badge variant="outline" className="text-xs">{lrSchedule}</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ==================== SAVED MODELS TAB ==================== */}
+        <TabsContent value="models" className="space-y-6">
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="font-mono text-lg flex items-center gap-2">
+                  <Database className="w-5 h-5 text-primary" />
+                  Saved Models
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={fetchSavedModels}>
+                  <RefreshCw className="w-4 h-4 mr-1" /> Refresh
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {savedModels.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {savedModels.map((model, i) => (
+                    <div key={i} className="p-4 bg-secondary rounded-lg border border-border hover:border-primary/50 transition-all">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-mono text-sm font-semibold">{model.symbol}</p>
+                          <p className="text-xs text-muted-foreground">{model.timestamp}</p>
+                        </div>
+                        <Badge className="bg-primary">{model.network_type?.toUpperCase()}</Badge>
+                      </div>
+                      
+                      <div className="space-y-2 mb-3">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Accuracy</span>
+                          <span className="font-mono text-success">{((model.metrics?.final_accuracy || 0) * 100).toFixed(1)}%</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Epochs</span>
+                          <span className="font-mono">{model.metrics?.epochs_trained || 0}</span>
+                        </div>
+                      </div>
+
+                      <Button 
+                        size="sm" 
+                        className="w-full gap-2"
+                        onClick={() => handleLoadModel(model.path)}
+                      >
+                        <FolderOpen className="w-4 h-4" />
+                        Load Model
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Database className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">No saved models yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">Train a model with "Save Model" enabled to see it here</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ==================== HISTORY TAB ==================== */}
+        <TabsContent value="history" className="space-y-6">
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="font-mono text-lg flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" /> Training History
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={fetchHistory}>
+                  <RefreshCw className="w-4 h-4 mr-1" /> Refresh
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {trainingHistory.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {trainingHistory.map((session, i) => (
+                    <div key={i} className="p-4 bg-secondary rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-mono text-sm font-semibold">{session.symbol}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(session.created_at).toLocaleString()}</p>
+                          <div className="flex gap-1 mt-2">
+                            <Badge className="text-xs" variant="outline">{session.config?.mode || 'pure_ml'}</Badge>
+                            <Badge className="text-xs" variant="outline">{session.config?.network_type || 'lstm'}</Badge>
+                          </div>
+                        </div>
+                        <Badge className={session.result?.status === 'completed' ? 'bg-success' : 'bg-warning'}>
+                          {((session.result?.best_accuracy || session.result?.final_accuracy || 0) * 100).toFixed(1)}%
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">No training history yet</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* ==================== START/STOP BUTTONS ==================== */}
       <div className="flex justify-center gap-4">
@@ -549,7 +904,7 @@ const Training = () => {
         </Button>
       </div>
 
-      {/* ==================== SECTION 2: TRAINING PROGRESS ==================== */}
+      {/* ==================== TRAINING PROGRESS ==================== */}
       <Card className={`bg-card border-2 ${isTraining ? 'border-primary' : 'border-border'}`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
@@ -560,7 +915,7 @@ const Training = () => {
             </CardTitle>
             <div className="flex items-center gap-4 text-sm">
               <span className="text-muted-foreground">Elapsed: <span className="font-mono text-primary">{formatTime(elapsedTime)}</span></span>
-              <span className="text-muted-foreground">Mode: <Badge variant="outline">{trainingStatus?.mode || mode}</Badge></span>
+              <span className="text-muted-foreground">Network: <Badge variant="outline">{trainingStatus?.network_type || networkType}</Badge></span>
             </div>
           </div>
         </CardHeader>
@@ -604,16 +959,15 @@ const Training = () => {
             </div>
             <div className="p-4 bg-secondary rounded-lg text-center">
               <p className="text-xs text-muted-foreground uppercase">Samples</p>
-              <p className="font-mono text-2xl">{trainingStatus?.data_info?.training_samples?.toLocaleString() || 0}</p>
+              <p className="font-mono text-2xl">{trainingStatus?.data_info?.samples?.toLocaleString() || 0}</p>
             </div>
           </div>
 
           {/* Live Charts */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Loss Chart */}
             <div className="p-4 bg-secondary/30 rounded-lg">
-              <h4 className="text-sm font-mono text-muted-foreground mb-2">Loss Curve (Real-time)</h4>
-              <div className="h-48">
+              <h4 className="text-sm font-mono text-muted-foreground mb-2">Loss Curve</h4>
+              <div className="h-40">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={trainingStatus?.history || []}>
                     <defs>
@@ -630,21 +984,16 @@ const Training = () => {
                     <XAxis dataKey="epoch" tick={{ fill: '#A1A1AA', fontSize: 10 }} />
                     <YAxis tick={{ fill: '#A1A1AA', fontSize: 10 }} domain={['auto', 'auto']} />
                     <Tooltip contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #1F1F1F' }} />
-                    <Area type="monotone" dataKey="loss" stroke="#FF2E55" fill="url(#lossGrad)" strokeWidth={2} name="Train Loss" />
-                    <Area type="monotone" dataKey="val_loss" stroke="#00E5FF" fill="url(#valLossGrad)" strokeWidth={2} name="Val Loss" />
+                    <Area type="monotone" dataKey="loss" stroke="#FF2E55" fill="url(#lossGrad)" strokeWidth={2} name="Train" />
+                    <Area type="monotone" dataKey="val_loss" stroke="#00E5FF" fill="url(#valLossGrad)" strokeWidth={2} name="Val" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex justify-center gap-4 mt-2 text-xs">
-                <span className="flex items-center gap-1"><span className="w-3 h-1 bg-[#FF2E55] rounded"></span> Train Loss</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-1 bg-[#00E5FF] rounded"></span> Val Loss</span>
-              </div>
             </div>
 
-            {/* Accuracy Chart */}
             <div className="p-4 bg-secondary/30 rounded-lg">
-              <h4 className="text-sm font-mono text-muted-foreground mb-2">Accuracy Curve (Real-time)</h4>
-              <div className="h-48">
+              <h4 className="text-sm font-mono text-muted-foreground mb-2">Accuracy Curve</h4>
+              <div className="h-40">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={trainingStatus?.history || []}>
                     <defs>
@@ -661,14 +1010,10 @@ const Training = () => {
                     <XAxis dataKey="epoch" tick={{ fill: '#A1A1AA', fontSize: 10 }} />
                     <YAxis tick={{ fill: '#A1A1AA', fontSize: 10 }} domain={[0, 1]} tickFormatter={(v) => `${(v*100).toFixed(0)}%`} />
                     <Tooltip contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #1F1F1F' }} formatter={(v) => `${(v*100).toFixed(1)}%`} />
-                    <Area type="monotone" dataKey="accuracy" stroke="#00FF94" fill="url(#accGrad)" strokeWidth={2} name="Train Acc" />
-                    <Area type="monotone" dataKey="val_accuracy" stroke="#B026FF" fill="url(#valAccGrad)" strokeWidth={2} name="Val Acc" />
+                    <Area type="monotone" dataKey="accuracy" stroke="#00FF94" fill="url(#accGrad)" strokeWidth={2} name="Train" />
+                    <Area type="monotone" dataKey="val_accuracy" stroke="#B026FF" fill="url(#valAccGrad)" strokeWidth={2} name="Val" />
                   </AreaChart>
                 </ResponsiveContainer>
-              </div>
-              <div className="flex justify-center gap-4 mt-2 text-xs">
-                <span className="flex items-center gap-1"><span className="w-3 h-1 bg-[#00FF94] rounded"></span> Train Acc</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-1 bg-[#B026FF] rounded"></span> Val Acc</span>
               </div>
             </div>
           </div>
@@ -685,11 +1030,11 @@ const Training = () => {
               {featureImportanceData.length > 0 && (
                 <div className="p-4 bg-secondary/30 rounded-lg">
                   <h4 className="font-mono text-sm text-muted-foreground mb-2">Top Features</h4>
-                  <div className="h-32">
+                  <div className="h-24">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={featureImportanceData} layout="vertical">
                         <XAxis type="number" tick={{ fill: '#A1A1AA', fontSize: 9 }} />
-                        <YAxis dataKey="name" type="category" tick={{ fill: '#A1A1AA', fontSize: 9 }} width={80} />
+                        <YAxis dataKey="name" type="category" tick={{ fill: '#A1A1AA', fontSize: 9 }} width={70} />
                         <Bar dataKey="importance" fill="#00E5FF" />
                       </BarChart>
                     </ResponsiveContainer>
@@ -697,45 +1042,6 @@ const Training = () => {
                 </div>
               )}
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ==================== SECTION 3: TRAINING HISTORY ==================== */}
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="font-mono text-lg flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary" /> Training History
-            </CardTitle>
-            <Button variant="outline" size="sm" onClick={fetchHistory}>
-              <RefreshCw className="w-4 h-4 mr-1" /> Refresh
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {trainingHistory.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {trainingHistory.map((session, i) => (
-                <div key={i} className="p-4 bg-secondary rounded-lg">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-mono text-sm font-semibold">{session.symbol}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(session.created_at).toLocaleString()}</p>
-                      <div className="flex gap-1 mt-2">
-                        <Badge className="text-xs" variant="outline">{session.config?.mode || 'pure_ml'}</Badge>
-                        <Badge className="text-xs" variant="outline">{session.config?.timeframe || '1h'}</Badge>
-                      </div>
-                    </div>
-                    <Badge className={session.result?.status === 'completed' ? 'bg-success' : 'bg-warning'}>
-                      {((session.result?.best_accuracy || session.result?.final_accuracy || 0) * 100).toFixed(1)}%
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-8">No training history yet. Start training to see results here.</p>
           )}
         </CardContent>
       </Card>
