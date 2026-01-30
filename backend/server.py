@@ -497,14 +497,17 @@ async def get_dashboard_stats():
         # Get model summary
         model_summary = hybrid_model.get_model_summary()
         
+        # Get training status and sanitize
+        training_status = sanitize_value(training_service.get_status())
+        
         return {
             "total_predictions": prediction_count,
             "training_sessions": training_count,
             "model_status": model_summary.get('status', 'unknown'),
             "is_trained": model_summary.get('is_trained', False),
             "symbols": ["BTC/USDT", "ETH/USDT"],
-            "recent_predictions": recent_predictions[:5],
-            "training_status": training_service.get_status()
+            "recent_predictions": sanitize_value(recent_predictions[:5]),
+            "training_status": training_status
         }
     except Exception as e:
         logger.error(f"Dashboard stats error: {e}")
