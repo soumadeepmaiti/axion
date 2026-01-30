@@ -235,9 +235,9 @@ async def build_model(config: Optional[ModelConfigUpdate] = None):
 
 @api_router.post("/predict", response_model=PredictionResponse)
 async def make_prediction(request: PredictionRequest):
-    """Make a trading prediction"""
+    """Make a trading prediction using trained model"""
     try:
-        # Get market data
+        # Get market data with mathematical analysis
         market_data = await data_pipeline.get_latest_data(request.symbol)
         
         # Get sentiment
@@ -245,29 +245,15 @@ async def make_prediction(request: PredictionRequest):
         if request.use_sentiment:
             sentiment_data = await sentiment_analyzer.get_aggregate_sentiment(request.symbol)
         
-        # Prepare sentiment features
-        if sentiment_data:
-            sentiment_features = np.array([
-                sentiment_data['aggregate_sentiment'],
-                sentiment_data['aggregate_confidence'],
-                0.5,  # subjectivity placeholder
-                sentiment_data['sample_count'] / 10  # normalized count
-            ])
-        else:
-            sentiment_features = np.array([0.0, 0.5, 0.5, 0.0])
+        # Use trained model for prediction
+        prediction = training_service.predict(market_data['features'])
         
-        # Make prediction
-        prediction = hybrid_model.predict(
-            market_data['micro_features'],
-            market_data['macro_features'],
-            sentiment_features
-        )
-        
-        # Calculate TP/SL
+        # Calculate TP/SL using mathematical analysis
         tp_sl = data_pipeline.calculate_tp_sl(
             market_data['current_price'],
             market_data['current_atr'],
-            prediction['direction']
+            prediction['direction'],
+            market_data.get('math_analysis')
         )
         
         # Build response
@@ -275,7 +261,7 @@ async def make_prediction(request: PredictionRequest):
             symbol=request.symbol,
             direction=prediction['direction'],
             direction_label="LONG" if prediction['direction'] == 1 else "SHORT",
-            probability=prediction['direction_probability'],
+            probability=prediction['probability'],
             confidence=prediction['confidence'],
             take_profit=tp_sl['take_profit'],
             stop_loss=tp_sl['stop_loss'],
@@ -289,6 +275,7 @@ async def make_prediction(request: PredictionRequest):
         # Store prediction in database
         pred_doc = response.model_dump()
         pred_doc['id'] = str(uuid.uuid4())
+        pred_doc['math_analysis'] = market_data.get('math_analysis')
         await db.predictions.insert_one(pred_doc)
         
         return response
