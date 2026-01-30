@@ -11,6 +11,8 @@ import ta
 import logging
 import asyncio
 
+from services.enhanced_features import apply_all_enhanced_features
+
 logger = logging.getLogger(__name__)
 
 class AdvancedDataPipeline:
