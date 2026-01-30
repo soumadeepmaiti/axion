@@ -294,12 +294,6 @@ class BacktestingService:
                 direction = position['direction']
                 trade_size = position['size']
                 
-                # Calculate current PnL
-                if direction == 'long':
-                    unrealized_pnl_pct = (current_price - entry_price) / entry_price
-                else:
-                    unrealized_pnl_pct = (entry_price - current_price) / entry_price
-                
                 # Check exit conditions
                 exit_reason = None
                 exit_price = current_price
