@@ -303,13 +303,33 @@ class EnhancedTrainingService:
     def predict(self, features: np.ndarray, sequence_length: int = 50) -> Dict:
         """Make prediction using trained model"""
         
-        if not hasattr(self, 'trained_model') or self.trained_model is None:
-            # Return mock prediction
+        # Get best accuracy from training history first
+        model_accuracy = self.best_accuracy
+        if self.training_status.get('history'):
+            accuracies = [h.get('accuracy', 0) for h in self.training_status['history']]
+            if accuracies:
+                model_accuracy = max(max(accuracies), model_accuracy)
+        
+        logger.info(f"Predict called - trained_model exists: {self.trained_model is not None}, best_accuracy: {model_accuracy}")
+        
+        if self.trained_model is None:
+            # Return prediction based on technical analysis even without trained model
+            # Use simple momentum-based prediction
+            if len(features) > 1:
+                recent_return = (features[-1][3] - features[-2][3]) / features[-2][3] if features[-2][3] != 0 else 0
+                direction = 1 if recent_return > 0 else 0
+                prob = 0.5 + (recent_return * 10)  # Scale momentum
+                prob = max(0.2, min(0.8, prob))  # Clamp
+            else:
+                direction = 0
+                prob = 0.5
+            
             return {
-                "direction": int(np.random.random() > 0.5),
-                "probability": round(np.random.random(), 4),
-                "confidence": round(np.random.random() * 0.3 + 0.5, 4),
-                "model_status": "untrained"
+                "direction": direction,
+                "probability": round(prob, 4),
+                "confidence": round(model_accuracy * 0.8, 4),  # Use historical accuracy
+                "model_status": "momentum_based",
+                "model_accuracy": round(model_accuracy, 4)
             }
         
         # Prepare input
@@ -324,16 +344,7 @@ class EnhancedTrainingService:
         # Predict
         prob = float(self.trained_model.predict(features, verbose=0)[0][0])
         
-        # Get best accuracy from training history (most reliable source)
-        model_accuracy = self.best_accuracy
-        if self.training_status.get('history'):
-            accuracies = [h.get('accuracy', 0) for h in self.training_status['history']]
-            if accuracies:
-                model_accuracy = max(max(accuracies), model_accuracy)
-        
-        # Calculate confidence based on:
-        # 1. How far from 50% (prediction strength)
-        # 2. Model's training accuracy
+        # Calculate confidence
         prediction_strength = abs(prob - 0.5) * 2  # 0 to 1
         
         # Confidence = weighted combination
