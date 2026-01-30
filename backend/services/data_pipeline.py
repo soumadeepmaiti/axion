@@ -235,6 +235,7 @@ class PureMLDataPipeline:
         return {
             'features': features,
             'labels': labels,
+            'prices': df['close'].values,  # For mathematical modeling
             'data_info': {
                 'total_candles': len(df),
                 'training_samples': len(features),
