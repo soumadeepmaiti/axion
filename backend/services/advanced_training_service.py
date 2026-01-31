@@ -4,6 +4,8 @@ Advanced Training Service with:
 - Class Balancing
 - Optuna Hyperparameter Search
 - Multiple Network Architectures
+- Reinforcement Learning (DQN, PPO)
+- Multi-Model Ensemble Training
 - Model Persistence
 - Learning Rate Scheduling
 """
@@ -26,7 +28,8 @@ import asyncio
 
 from ml_models.advanced_models import (
     build_model, EnsembleModel, ProgressCallback,
-    save_model, load_model, list_saved_models, MODEL_DIR
+    save_model, load_model, list_saved_models, MODEL_DIR,
+    build_rl_agent, get_multi_model_ensemble
 )
 from services.advanced_data_pipeline import advanced_data_pipeline
 
