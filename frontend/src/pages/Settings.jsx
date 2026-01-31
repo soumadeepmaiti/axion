@@ -41,15 +41,25 @@ const healthCheck = async () => {
 const Settings = () => {
   // API Keys
   const [apiKeys, setApiKeys] = useState({
+    // Sentiment APIs
     cryptopanic: "",
     twitter_api_key: "",
     twitter_api_secret: "",
     reddit_client_id: "",
     reddit_client_secret: "",
+    // Market Data APIs
     glassnode: "",
-    alphavantage: ""
+    alphavantage: "",
+    // LLM APIs
+    openai: "",
+    claude: "",
+    gemini: "",
+    deepseek: "",
+    grok: "",
+    kimi: ""
   });
   const [showKeys, setShowKeys] = useState({});
+  const [llmProviders, setLlmProviders] = useState([]);
 
   // Trading Settings
   const [tradingSettings, setTradingSettings] = useState({
