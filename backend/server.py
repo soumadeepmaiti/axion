@@ -345,8 +345,46 @@ async def make_prediction(request: PredictionRequest):
         if request.use_sentiment:
             sentiment_data = await sentiment_analyzer.get_aggregate_sentiment(request.symbol)
         
-        # Use trained model for prediction
-        prediction = training_service.predict(market_data['features'])
+        # Try to use advanced training service model first (from Training page)
+        prediction = None
+        if advanced_training_service.model is not None:
+            try:
+                features = market_data['features']
+                seq_len = 50
+                if len(features) < seq_len:
+                    features = np.pad(features, ((seq_len - len(features), 0), (0, 0)), mode='constant')
+                else:
+                    features = features[-seq_len:]
+                features_reshaped = features.reshape(1, seq_len, -1)
+                
+                ml_prob = float(advanced_training_service.model.predict(features_reshaped, verbose=0)[0][0])
+                model_accuracy = advanced_training_service.status.get('final_accuracy', 0.5)
+                
+                prediction = {
+                    "direction": int(ml_prob > 0.5),
+                    "probability": round(ml_prob, 4),
+                    "model_status": "trained",
+                    "model_accuracy": round(model_accuracy, 4),
+                    "model_type": advanced_training_service.status.get('network_type', 'unknown')
+                }
+                logger.info(f"Using advanced model for prediction: {ml_prob:.4f}")
+            except Exception as e:
+                logger.warning(f"Advanced model prediction failed: {e}")
+                prediction = None
+        
+        # Fallback to basic training service
+        if prediction is None:
+            prediction = training_service.predict(market_data['features'])
+        
+        # Calculate confidence
+        if 'confidence' not in prediction:
+            prediction_strength = abs(prediction['probability'] - 0.5) * 2
+            model_acc = prediction.get('model_accuracy', 0.5)
+            confidence = (prediction_strength * 0.3) + (model_acc * 0.7)
+            if prediction['probability'] > 0.65 or prediction['probability'] < 0.35:
+                confidence = min(confidence * 1.15, 0.95)
+            confidence = max(confidence, model_acc * 0.8)
+            prediction['confidence'] = round(confidence, 4)
         
         # Calculate TP/SL using mathematical analysis
         tp_sl = data_pipeline.calculate_tp_sl(
@@ -383,6 +421,7 @@ async def make_prediction(request: PredictionRequest):
         pred_doc = response.model_dump()
         pred_doc['id'] = str(uuid.uuid4())
         pred_doc['math_analysis'] = market_data.get('math_analysis')
+        pred_doc['model_type'] = prediction.get('model_type', 'unknown')
         await db.predictions.insert_one(pred_doc)
         
         return response
