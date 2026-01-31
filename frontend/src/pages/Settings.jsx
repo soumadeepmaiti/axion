@@ -103,9 +103,10 @@ const Settings = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [settingsRes, healthRes] = await Promise.all([
+      const [settingsRes, healthRes, llmRes] = await Promise.all([
         getSettings(),
-        healthCheck()
+        healthCheck(),
+        API.get('/llm/providers').then(r => r.data).catch(() => ({ providers: [] }))
       ]);
 
       if (settingsRes) {
@@ -116,6 +117,7 @@ const Settings = () => {
       }
 
       setHealth(healthRes);
+      setLlmProviders(llmRes.providers || []);
     } catch (error) {
       console.error("Error fetching settings:", error);
     } finally {
