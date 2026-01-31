@@ -80,7 +80,14 @@ const NETWORK_TYPES = [
   { id: "multi_tf_attention", name: "Multi-TF Attn", description: "Separate attention per timeframe", icon: "⏱️" },
   { id: "rl_dqn", name: "RL - DQN", description: "Deep Q-Network - Learns by trading simulation", icon: "🤖" },
   { id: "rl_ppo", name: "RL - PPO", description: "Proximal Policy Optimization - Advanced RL", icon: "🎮" },
-  { id: "multi_model", name: "Multi-Model", description: "Train multiple models & combine predictions", icon: "🔀" },
+];
+
+// Models available for multi-model ensemble
+const MULTI_MODEL_OPTIONS = [
+  { id: "lstm", name: "LSTM", icon: "🧠" },
+  { id: "gru", name: "GRU", icon: "⚡" },
+  { id: "transformer", name: "Transformer", icon: "🔮" },
+  { id: "cnn_lstm", name: "CNN + LSTM", icon: "🔗" },
 ];
 
 const LR_SCHEDULES = [
