@@ -84,10 +84,10 @@ const NETWORK_TYPES = [
 
 // Models available for multi-model ensemble
 const MULTI_MODEL_OPTIONS = [
-  { id: "lstm", name: "LSTM", icon: "🧠" },
-  { id: "gru", name: "GRU", icon: "⚡" },
-  { id: "transformer", name: "Transformer", icon: "🔮" },
-  { id: "cnn_lstm", name: "CNN + LSTM", icon: "🔗" },
+  { id: "lstm", name: "LSTM", icon: "🧠", description: "Sequential patterns", color: "from-pink-500/20 to-purple-500/20", borderColor: "border-pink-500" },
+  { id: "gru", name: "GRU", icon: "⚡", description: "Fast & efficient", color: "from-yellow-500/20 to-orange-500/20", borderColor: "border-yellow-500" },
+  { id: "transformer", name: "Transformer", icon: "🔮", description: "Attention-based", color: "from-violet-500/20 to-indigo-500/20", borderColor: "border-violet-500" },
+  { id: "cnn_lstm", name: "CNN+LSTM", icon: "🔗", description: "Hybrid power", color: "from-cyan-500/20 to-blue-500/20", borderColor: "border-cyan-500" },
 ];
 
 const LR_SCHEDULES = [
