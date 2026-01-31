@@ -58,6 +58,42 @@ User wants two training modes:
 - ✅ Added API endpoints: GET/POST /api/llm/chat, /api/llm/signal, /api/llm/sentiment, /api/llm/multi-chat, /api/llm/providers
 - ✅ **Tested:** 100% backend tests passed (8/8), frontend fully functional
 
+### Reinforcement Learning Architecture (Jan 31, 2026)
+- ✅ **2 RL Algorithms Added:**
+  - **DQN (Deep Q-Network)** - Experience replay, target network, dueling architecture
+  - **PPO (Proximal Policy Optimization)** - Actor-critic, clipped surrogate objective, GAE
+- ✅ **Trading Environment:** Custom TradingEnvironment class with:
+  - State: Window of market features + position info
+  - Actions: BUY (open long), HOLD (wait), SELL (open short)
+  - Reward: PnL with transaction costs
+- ✅ **RL Trainer:** Unified RLTrainer class supporting both DQN and PPO
+- ✅ **UI Configuration Panel:** Training Episodes slider (50-500), Discount Factor (γ) slider (0.90-0.99)
+- ✅ **Files Created:** `/app/backend/ml_models/rl_models.py`
+
+### Multi-Model Ensemble Training (Jan 31, 2026)
+- ✅ **4 Ensemble Methods:**
+  - **Simple Voting** - Each model votes equally
+  - **Weighted Voting** - Models weighted by validation accuracy (recommended)
+  - **Stacking** - XGBoost meta-learner trained on model outputs
+  - **Blending** - Optimized linear combination on holdout set
+- ✅ **Supported Base Models:** LSTM, GRU, Transformer, CNN_LSTM
+- ✅ **Multi-Model Benefits:**
+  - Train multiple architectures simultaneously
+  - Combine predictions for higher accuracy
+  - View individual model performance breakdown
+- ✅ **UI Configuration Panel:** Model selection checkboxes, Ensemble method dropdown
+- ✅ **Files Created:** `/app/backend/ml_models/multi_model_ensemble.py`
+- ✅ **Tested:** 100% (14/14 backend tests, all frontend tests passed)
+- ✅ **Backend LLM Service:** `/app/backend/services/llm_service.py` - fully refactored to use LlmChat class
+- ✅ **3 LLM Features:**
+  - **Sentiment Analysis** - LLM analyzes news → sentiment score as ML feature
+  - **Ensemble Voting** - Multiple LLMs vote BUY/SELL/HOLD with consensus (100% tested)
+  - **Chat Advisor** - Direct chat interface for market questions (all 3 providers working)
+- ✅ **AI Advisor Page:** New `/advisor` route with Chat + Ensemble Signal tabs
+- ✅ **"3 LLMs Active" Badge:** Shows in UI when all providers are working
+- ✅ Added API endpoints: GET/POST /api/llm/chat, /api/llm/signal, /api/llm/sentiment, /api/llm/multi-chat, /api/llm/providers
+- ✅ **Tested:** 100% backend tests passed (8/8), frontend fully functional
+
 ### Settings Page Overhaul (Jan 31, 2026)
 - ✅ **API Keys Management:** CryptoPanic, Twitter, Reddit, Glassnode, Alpha Vantage
 - ✅ **Trading Settings:** Stop-loss, take-profit, position size, risk per trade, trailing stop
