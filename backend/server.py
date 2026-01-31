@@ -171,6 +171,14 @@ class BacktestRequest(BaseModel):
     min_confidence: float = 0.6  # minimum prediction confidence
     commission: float = 0.001  # 0.1% per trade
 
+class SettingsModel(BaseModel):
+    api_keys: Optional[Dict[str, str]] = None
+    trading: Optional[Dict[str, Any]] = None
+    notifications: Optional[Dict[str, Any]] = None
+    data_source: Optional[Dict[str, Any]] = None
+    theme: Optional[Dict[str, Any]] = None
+    active_model: Optional[str] = None
+
 # ============== Health & Status Endpoints ==============
 
 @api_router.get("/")
