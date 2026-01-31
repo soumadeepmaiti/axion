@@ -240,7 +240,13 @@ const Training = () => {
         optuna_trials: optunTrials,
         class_balance_method: classBalanceMethod,
         multi_timeframe: multiTimeframe,
-        save_model: saveModel
+        save_model: saveModel,
+        // Multi-Model Config
+        selected_models: selectedModels,
+        ensemble_method: ensembleMethod,
+        // RL Config
+        rl_episodes: rlEpisodes,
+        rl_gamma: rlGamma
       };
       
       const result = await startAdvancedTraining(config);
