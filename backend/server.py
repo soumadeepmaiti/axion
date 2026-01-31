@@ -57,6 +57,7 @@ from ml_models.hybrid_model import hybrid_model
 from services.advanced_data_pipeline import advanced_data_pipeline
 from services.advanced_training_service import advanced_training_service
 from services.backtesting_service import backtesting_service
+from services.llm_service import llm_service, LLMResponse
 from ml_models.advanced_models import list_saved_models, load_model
 
 # Create the main app
