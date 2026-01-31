@@ -350,10 +350,9 @@ async def make_prediction(request: PredictionRequest):
         if advanced_training_service.model is not None:
             try:
                 # Use advanced data pipeline for consistent features
-                adv_data = await advanced_data_pipeline.get_training_data(
+                adv_data = await advanced_data_pipeline.prepare_training_data(
                     symbol=request.symbol,
-                    timeframe='1h',
-                    limit=100
+                    timeframe='1h'
                 )
                 
                 if adv_data and 'features' in adv_data:
