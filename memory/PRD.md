@@ -169,8 +169,14 @@ User wants two training modes:
 - Multiple model comparison
 
 ## Known Issues
-1. **CryptoPanic API**: Returns 404 - using MOCKED sentiment data
+1. **CryptoPanic API**: Returns 404 - using MOCKED sentiment data (blocked on valid API key)
 2. **Intermittent CORS**: Occasional "Failed to fetch" on initial load (transient)
+3. **Exchange APIs**: Data fetching uses public endpoints - user keys from Settings not yet connected
+
+## Upcoming Tasks
+1. **P1:** Connect Exchange APIs to Data Pipeline - use keys from Settings page for authenticated data
+2. **P1:** End-to-End Model Persistence Test - train → save → restart → load → backtest
+3. **P2:** Integrate Real On-Chain/Alternative Data APIs - replace mocked data sources
 
 ## API Endpoints
 | Endpoint | Method | Description |
