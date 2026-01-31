@@ -78,6 +78,9 @@ const NETWORK_TYPES = [
   { id: "multi_task", name: "Multi-Task", description: "Predict direction + volatility + magnitude", icon: "📊" },
   { id: "gnn", name: "GNN", description: "Graph Neural Network - Asset relationships", icon: "🕸️" },
   { id: "multi_tf_attention", name: "Multi-TF Attn", description: "Separate attention per timeframe", icon: "⏱️" },
+  { id: "rl_dqn", name: "RL - DQN", description: "Deep Q-Network - Learns by trading simulation", icon: "🤖" },
+  { id: "rl_ppo", name: "RL - PPO", description: "Proximal Policy Optimization - Advanced RL", icon: "🎮" },
+  { id: "multi_model", name: "Multi-Model", description: "Train multiple models & combine predictions", icon: "🔀" },
 ];
 
 const LR_SCHEDULES = [
