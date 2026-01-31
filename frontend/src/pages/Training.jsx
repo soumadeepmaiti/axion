@@ -131,6 +131,7 @@ const Training = () => {
   const [selectedStrategies, setSelectedStrategies] = useState([]);
   
   // Multi-Model Config
+  const [isMultiModel, setIsMultiModel] = useState(false);
   const [selectedModels, setSelectedModels] = useState(["lstm", "gru", "transformer"]);
   const [ensembleMethod, setEnsembleMethod] = useState("weighted");
   
