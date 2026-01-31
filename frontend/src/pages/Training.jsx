@@ -501,78 +501,164 @@ const Training = () => {
                   </>
                 ) : (
                   /* Multi-Model Selection */
-                  <div className="space-y-4">
-                    <p className="text-xs text-muted-foreground">
-                      Select multiple models to train simultaneously. Their predictions will be combined using the selected ensemble method for higher accuracy.
-                    </p>
+                  <div className="space-y-5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        Select models to train together. Combined predictions yield higher accuracy.
+                      </p>
+                      <Badge variant="outline" className="text-xs">
+                        Min 2 required
+                      </Badge>
+                    </div>
                     
-                    <div className="grid grid-cols-4 gap-2">
-                      {MULTI_MODEL_OPTIONS.map((model) => (
-                        <div
-                          key={model.id}
-                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                            selectedModels.includes(model.id)
-                              ? 'border-primary bg-primary/10 shadow-md shadow-primary/20'
-                              : 'border-border bg-secondary/30 hover:border-primary/50'
-                          } ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          onClick={() => {
-                            if (isTraining) return;
-                            if (selectedModels.includes(model.id)) {
-                              if (selectedModels.length > 2) {
-                                setSelectedModels(prev => prev.filter(m => m !== model.id));
+                    {/* Beautiful Model Cards */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {MULTI_MODEL_OPTIONS.map((model) => {
+                        const isSelected = selectedModels.includes(model.id);
+                        const canDeselect = selectedModels.length > 2;
+                        
+                        return (
+                          <div
+                            key={model.id}
+                            className={`relative group cursor-pointer transition-all duration-300 ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={() => {
+                              if (isTraining) return;
+                              if (isSelected) {
+                                if (canDeselect) {
+                                  setSelectedModels(prev => prev.filter(m => m !== model.id));
+                                }
+                              } else {
+                                setSelectedModels(prev => [...prev, model.id]);
                               }
-                            } else {
-                              setSelectedModels(prev => [...prev, model.id]);
-                            }
-                          }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Checkbox 
-                              checked={selectedModels.includes(model.id)} 
-                              disabled={isTraining || (selectedModels.includes(model.id) && selectedModels.length <= 2)}
-                            />
-                            <span className="text-lg">{model.icon}</span>
-                            <span className="font-mono text-sm font-semibold">{model.name}</span>
+                            }}
+                          >
+                            {/* Card */}
+                            <div className={`
+                              relative overflow-hidden rounded-xl border-2 p-4 transition-all duration-300
+                              ${isSelected 
+                                ? `${model.borderColor} bg-gradient-to-br ${model.color} shadow-lg` 
+                                : 'border-border/50 bg-secondary/20 hover:border-primary/30 hover:bg-secondary/40'
+                              }
+                            `}>
+                              {/* Selection indicator */}
+                              <div className={`
+                                absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center transition-all
+                                ${isSelected 
+                                  ? 'bg-primary text-primary-foreground scale-100' 
+                                  : 'bg-muted/50 scale-90 group-hover:scale-100'
+                                }
+                              `}>
+                                {isSelected ? (
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                ) : (
+                                  <span className="w-2 h-2 rounded-full bg-muted-foreground/30"></span>
+                                )}
+                              </div>
+                              
+                              {/* Content */}
+                              <div className="flex flex-col items-center text-center space-y-2">
+                                <div className={`
+                                  text-3xl p-3 rounded-xl transition-transform duration-300
+                                  ${isSelected ? 'scale-110 bg-background/30' : 'group-hover:scale-105'}
+                                `}>
+                                  {model.icon}
+                                </div>
+                                <div>
+                                  <h4 className={`font-mono font-bold text-sm ${isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                                    {model.name}
+                                  </h4>
+                                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                                    {model.description}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              {/* Glow effect when selected */}
+                              {isSelected && (
+                                <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     
                     {/* Ensemble Method Selection */}
                     <div className="space-y-2">
-                      <Label className="text-xs font-mono">Ensemble Method</Label>
+                      <Label className="text-xs font-mono flex items-center gap-2">
+                        <Shuffle className="w-3 h-3" />
+                        Ensemble Method
+                      </Label>
                       <Select value={ensembleMethod} onValueChange={setEnsembleMethod} disabled={isTraining}>
-                        <SelectTrigger className="bg-secondary border-border">
+                        <SelectTrigger className="bg-secondary/50 border-border h-10">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="voting">Simple Voting - Each model votes equally</SelectItem>
-                          <SelectItem value="weighted">Weighted Voting - Weight by accuracy (recommended)</SelectItem>
-                          <SelectItem value="stacking">Stacking - XGBoost meta-learner on predictions</SelectItem>
-                          <SelectItem value="blending">Blending - Optimized linear combination</SelectItem>
+                          <SelectItem value="voting">
+                            <span className="flex items-center gap-2">
+                              <span>🗳️</span> Simple Voting
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="weighted">
+                            <span className="flex items-center gap-2">
+                              <span>⚖️</span> Weighted Voting (recommended)
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="stacking">
+                            <span className="flex items-center gap-2">
+                              <span>📚</span> Stacking (XGBoost meta-learner)
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="blending">
+                            <span className="flex items-center gap-2">
+                              <span>🎨</span> Blending (optimized weights)
+                            </span>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     
-                    {/* Multi-Model Summary */}
-                    <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Shuffle className="w-4 h-4 text-primary" />
-                        <span className="font-mono text-sm font-semibold text-primary">
-                          {selectedModels.length} Models Selected
-                        </span>
+                    {/* Summary Card */}
+                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/30 p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                              <Shuffle className="w-4 h-4 text-primary" />
+                            </div>
+                            <div>
+                              <span className="font-mono text-lg font-bold text-primary">
+                                {selectedModels.length}
+                              </span>
+                              <span className="text-sm text-muted-foreground ml-1">Models Selected</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-2">
+                            {selectedModels.map(m => {
+                              const modelInfo = MULTI_MODEL_OPTIONS.find(opt => opt.id === m);
+                              return (
+                                <Badge 
+                                  key={m} 
+                                  className={`bg-gradient-to-r ${modelInfo?.color} border ${modelInfo?.borderColor} text-foreground font-mono text-xs px-2 py-1`}
+                                >
+                                  {modelInfo?.icon} {m.toUpperCase()}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Method</p>
+                          <p className="font-mono text-sm text-primary font-semibold capitalize">{ensembleMethod}</p>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {selectedModels.map(m => (
-                          <Badge key={m} variant="outline" className="text-xs font-mono">
-                            {MULTI_MODEL_OPTIONS.find(opt => opt.id === m)?.icon} {m.toUpperCase()}
-                          </Badge>
-                        ))}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Ensemble: <span className="text-primary font-mono">{ensembleMethod}</span> • 
-                        Each model trains independently, then predictions are combined
-                      </p>
+                      
+                      {/* Decorative element */}
+                      <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
                     </div>
                   </div>
                 )}
