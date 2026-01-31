@@ -734,8 +734,8 @@ async def llm_chat(request: LLMChatRequest):
         context = request.context
         if not context:
             try:
-                latest = await data_pipeline.get_latest_price("BTC/USDT")
-                context = f"Current BTC price: ${latest.get('price', 'N/A')}"
+                latest = await data_pipeline.get_latest_data("BTC/USDT")
+                context = f"Current BTC price: ${latest.get('current_price', 'N/A'):,.2f}"
             except Exception:
                 context = None
         
