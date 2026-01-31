@@ -56,7 +56,32 @@ const Settings = () => {
     gemini: "",
     deepseek: "",
     grok: "",
-    kimi: ""
+    kimi: "",
+    // Exchange APIs
+    binance_api_key: "",
+    binance_api_secret: "",
+    coinbase_api_key: "",
+    coinbase_api_secret: "",
+    kucoin_api_key: "",
+    kucoin_api_secret: "",
+    kucoin_passphrase: "",
+    kraken_api_key: "",
+    kraken_api_secret: "",
+    bybit_api_key: "",
+    bybit_api_secret: "",
+    okx_api_key: "",
+    okx_api_secret: "",
+    okx_passphrase: "",
+    // Custom APIs
+    custom_api_1_name: "",
+    custom_api_1_key: "",
+    custom_api_1_url: "",
+    custom_api_2_name: "",
+    custom_api_2_key: "",
+    custom_api_2_url: "",
+    custom_api_3_name: "",
+    custom_api_3_key: "",
+    custom_api_3_url: ""
   });
   const [showKeys, setShowKeys] = useState({});
   const [llmProviders, setLlmProviders] = useState([]);
