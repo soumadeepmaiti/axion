@@ -496,32 +496,22 @@ class AdvancedTrainingService:
                     validation_data=(X_val, y_val),
                     epochs=self.status['total_epochs'],
                     batch_size=config.get('batch_size', 32),
-                    class_weight=class_weights if balance_method == 'class_weight' else None,
+                    class_weight=class_weights if class_weights and balance_method == 'class_weight' else None,
                     callbacks=callbacks,
                     verbose=0
                 )
-            
-            # Evaluate
-            if use_ensemble:
-                y_pred_proba = self.ensemble_model.predict(X_val)
-                y_pred = (y_pred_proba > 0.5).astype(int)
-                final_accuracy = float(np.mean(y_pred == y_val))
-            else:
+                
+                # Evaluate
                 val_loss, val_acc, val_auc = self.model.evaluate(X_val, y_val, verbose=0)
                 final_accuracy = float(val_acc)
-            
-            # Save model if requested
-            if config.get('save_model', True):
-                metrics = {
-                    'final_accuracy': final_accuracy,
-                    'final_loss': float(self.status['history'][-1]['val_loss']) if self.status['history'] else 0,
-                    'epochs_trained': self.status['current_epoch']
-                }
                 
-                if use_ensemble:
-                    model_path = str(MODEL_DIR / f"{data['data_info']['symbol'].replace('/', '_')}_ensemble_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
-                    self.ensemble_model.save(model_path)
-                else:
+                # Save model if requested
+                if config.get('save_model', True):
+                    metrics = {
+                        'final_accuracy': final_accuracy,
+                        'final_loss': float(self.status['history'][-1]['val_loss']) if self.status['history'] else 0,
+                        'epochs_trained': self.status['current_epoch']
+                    }
                     model_path = save_model(
                         self.model, 
                         data['data_info']['symbol'],
@@ -529,19 +519,20 @@ class AdvancedTrainingService:
                         metrics,
                         config
                     )
+                    self.status['saved_model_path'] = model_path
                 
-                self.status['saved_model_path'] = model_path
-            
-            # Generate learned patterns summary
-            self.status['learned_patterns'] = self._generate_learned_patterns(
-                self.model, X_val, y_val, self.feature_names
-            )
-            
-            self.status['final_accuracy'] = final_accuracy
-            logger.info(f"Training completed. Final accuracy: {final_accuracy:.4f}")
+                # Generate learned patterns summary
+                self.status['learned_patterns'] = self._generate_learned_patterns(
+                    self.model, X_val, y_val, self.feature_names
+                )
+                
+                self.status['final_accuracy'] = final_accuracy
+                logger.info(f"Training completed. Final accuracy: {final_accuracy:.4f}")
             
         except Exception as e:
             logger.error(f"Training error: {e}")
+            import traceback
+            traceback.print_exc()
             self.status['error'] = str(e)
         finally:
             self.status['is_training'] = False
