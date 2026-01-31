@@ -130,6 +130,14 @@ const Training = () => {
   // Strategies
   const [selectedStrategies, setSelectedStrategies] = useState([]);
   
+  // Multi-Model Config
+  const [selectedModels, setSelectedModels] = useState(["lstm", "gru", "transformer"]);
+  const [ensembleMethod, setEnsembleMethod] = useState("weighted");
+  
+  // RL Config
+  const [rlEpisodes, setRlEpisodes] = useState(100);
+  const [rlGamma, setRlGamma] = useState(0.99);
+  
   // Status
   const [trainingStatus, setTrainingStatus] = useState(null);
   const [trainingHistory, setTrainingHistory] = useState([]);
