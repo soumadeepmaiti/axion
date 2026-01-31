@@ -1,10 +1,14 @@
 """
 Test cases for RL (DQN, PPO) and Multi-Model Ensemble features
-Tests backend imports, API endpoints, and configuration handling
+Tests backend API endpoints and configuration handling
 """
 import pytest
 import requests
 import os
+import sys
+
+# Add backend to path for imports
+sys.path.insert(0, '/app/backend')
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://cryptfuse.preview.emergentagent.com').rstrip('/')
 
