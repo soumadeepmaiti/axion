@@ -263,16 +263,24 @@ class AdvancedTrainingService:
             
             features = data['features']
             labels = data['labels']
+            prices = data.get('prices', features[:, 3] if features.shape[1] > 3 else features[:, 0])  # Close prices
             self.feature_names = data.get('feature_names', [])
             
             sequence_length = config.get('sequence_length', 50)
             network_type = config.get('network_type', 'lstm')
             use_ensemble = network_type == 'ensemble'
+            use_rl = network_type.startswith('rl_')
+            use_multi_model = network_type == 'multi_model'
             
             self.status['network_type'] = network_type
             
             # Create sequences
             X, y = self.create_sequences(features, labels, sequence_length)
+            
+            # Also create price sequences for RL
+            if use_rl:
+                _, price_seq = self.create_sequences(prices.reshape(-1, 1), prices[sequence_length:], sequence_length)
+                price_seq = prices[sequence_length:len(X) + sequence_length]
             
             if len(X) < 100:
                 raise ValueError(f"Insufficient data: {len(X)} sequences (need at least 100)")
@@ -282,16 +290,23 @@ class AdvancedTrainingService:
             X_train, X_val = X[:split_idx], X[split_idx:]
             y_train, y_val = y[:split_idx], y[split_idx:]
             
-            # Apply class balancing
-            balance_method = config.get('class_balance_method', 'class_weight')
-            X_train, y_train, class_weights = self.apply_class_balancing(
-                X_train, y_train, balance_method
-            )
+            if use_rl:
+                prices_train = prices[sequence_length:sequence_length + split_idx]
+                prices_val = prices[sequence_length + split_idx:sequence_length + len(X)]
+            
+            # Apply class balancing (for non-RL models)
+            if not use_rl:
+                balance_method = config.get('class_balance_method', 'class_weight')
+                X_train, y_train, class_weights = self.apply_class_balancing(
+                    X_train, y_train, balance_method
+                )
+            else:
+                class_weights = None
             
             input_shape = (X_train.shape[1], X_train.shape[2])
             
-            # Walk-forward validation (optional)
-            if config.get('use_walk_forward', False):
+            # Walk-forward validation (optional, not for RL)
+            if config.get('use_walk_forward', False) and not use_rl:
                 logger.info("Running walk-forward validation...")
                 wf_results = self.walk_forward_validation(
                     X_train, y_train, n_splits=config.get('cv_folds', 5),
@@ -300,8 +315,8 @@ class AdvancedTrainingService:
                 self.status['validation_results'] = wf_results
                 logger.info(f"Walk-forward CV accuracy: {wf_results['avg_accuracy']:.4f} ± {wf_results['std_accuracy']:.4f}")
             
-            # Hyperparameter search (optional)
-            if config.get('use_optuna', False):
+            # Hyperparameter search (optional, not for RL)
+            if config.get('use_optuna', False) and not use_rl:
                 logger.info("Running Optuna hyperparameter search...")
                 optuna_results = self.optuna_hyperparameter_search(
                     X_train, y_train, X_val, y_val,
@@ -312,8 +327,108 @@ class AdvancedTrainingService:
                 self.status['optuna_results'] = optuna_results
                 logger.info(f"Best Optuna params: {optuna_results['best_params']}")
             
-            # Build model
-            if use_ensemble:
+            # ========================
+            # Reinforcement Learning
+            # ========================
+            if use_rl:
+                rl_algorithm = 'dqn' if network_type == 'rl_dqn' else 'ppo'
+                logger.info(f"Training {rl_algorithm.upper()} Reinforcement Learning Agent...")
+                
+                from ml_models.rl_models import RLTrainer
+                
+                rl_config = {
+                    'gamma': config.get('rl_gamma', 0.99),
+                    'epsilon_decay': 0.995,
+                    'batch_size': config.get('batch_size', 64)
+                }
+                
+                self.rl_trainer = RLTrainer(algorithm=rl_algorithm, config=rl_config)
+                self.rl_trainer.setup(X_train.reshape(len(X_train), -1), prices_train, window_size=sequence_length)
+                
+                num_episodes = config.get('rl_episodes', 100)
+                self.status['total_epochs'] = num_episodes
+                
+                def rl_callback(status):
+                    self.status['current_epoch'] = status['episode']
+                    self.status['progress'] = (status['episode'] / status['total_episodes']) * 100
+                    self.status['history'].append({
+                        'epoch': status['episode'],
+                        'reward': status['avg_reward'],
+                        'pnl': status['avg_pnl']
+                    })
+                
+                rl_results = self.rl_trainer.train(num_episodes=num_episodes, status_callback=rl_callback)
+                
+                final_accuracy = (rl_results['final_avg_pnl'] > 0)  # Profitable = success
+                self.status['final_accuracy'] = 1.0 if final_accuracy else 0.0
+                self.status['rl_results'] = rl_results
+                self.status['learned_patterns'] = {
+                    'algorithm': rl_algorithm.upper(),
+                    'final_avg_pnl': rl_results['final_avg_pnl'],
+                    'best_pnl': rl_results['best_pnl'],
+                    'total_episodes': rl_results['total_episodes']
+                }
+                
+                # Save RL model
+                if config.get('save_model', True):
+                    model_path = str(MODEL_DIR / f"{data['data_info']['symbol'].replace('/', '_')}_{rl_algorithm}_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+                    import os
+                    os.makedirs(model_path, exist_ok=True)
+                    self.rl_trainer.save(model_path)
+                    self.status['saved_model_path'] = model_path
+                
+                logger.info(f"RL Training completed. Final avg PnL: ${rl_results['final_avg_pnl']:.2f}")
+                
+            # ========================
+            # Multi-Model Ensemble
+            # ========================
+            elif use_multi_model:
+                logger.info("Training Multi-Model Ensemble...")
+                
+                selected_models = config.get('selected_models', ['lstm', 'gru', 'transformer'])
+                ensemble_method = config.get('ensemble_method', 'weighted')
+                
+                ensemble_config = {
+                    **config,
+                    'models': selected_models,
+                    'ensemble_method': ensemble_method
+                }
+                
+                self.multi_model_ensemble = get_multi_model_ensemble(input_shape, ensemble_config)
+                
+                def mm_callback(status):
+                    model_progress = (status['model_index'] / status['total_models']) * 100
+                    self.status['progress'] = model_progress
+                    self.status['current_model'] = status['current_model']
+                
+                results = self.multi_model_ensemble.fit(
+                    X_train, y_train, X_val, y_val,
+                    epochs=self.status['total_epochs'],
+                    batch_size=config.get('batch_size', 32),
+                    status_callback=mm_callback
+                )
+                
+                self.status['final_accuracy'] = results['ensemble_accuracy']
+                self.status['multi_model_results'] = results
+                self.status['learned_patterns'] = {
+                    'ensemble_method': ensemble_method,
+                    'num_models': results['num_models'],
+                    'model_weights': results['model_weights'],
+                    'individual_accuracies': {m: results['models'][m]['val_accuracy'] for m in results['models']}
+                }
+                
+                # Save multi-model ensemble
+                if config.get('save_model', True):
+                    model_path = str(MODEL_DIR / f"{data['data_info']['symbol'].replace('/', '_')}_multi_model_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+                    self.multi_model_ensemble.save(model_path)
+                    self.status['saved_model_path'] = model_path
+                
+                logger.info(f"Multi-Model Training completed. Ensemble accuracy: {results['ensemble_accuracy']:.4f}")
+            
+            # ========================
+            # Standard Ensemble
+            # ========================
+            elif use_ensemble:
                 logger.info("Building Ensemble model (LSTM + XGBoost + RandomForest)...")
                 self.ensemble_model = EnsembleModel(input_shape, config)
                 
@@ -327,6 +442,31 @@ class AdvancedTrainingService:
                 
                 self.model = self.ensemble_model.nn_model
                 
+                y_pred_proba = self.ensemble_model.predict(X_val)
+                y_pred = (y_pred_proba > 0.5).astype(int)
+                final_accuracy = float(np.mean(y_pred == y_val))
+                
+                self.status['final_accuracy'] = final_accuracy
+                self.status['learned_patterns'] = self._generate_learned_patterns(
+                    self.model, X_val, y_val, self.feature_names
+                )
+                
+                # Save model if requested
+                if config.get('save_model', True):
+                    metrics = {
+                        'final_accuracy': final_accuracy,
+                        'final_loss': float(self.status['history'][-1]['val_loss']) if self.status['history'] else 0,
+                        'epochs_trained': self.status['current_epoch']
+                    }
+                    model_path = str(MODEL_DIR / f"{data['data_info']['symbol'].replace('/', '_')}_ensemble_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+                    self.ensemble_model.save(model_path)
+                    self.status['saved_model_path'] = model_path
+                
+                logger.info(f"Ensemble Training completed. Final accuracy: {final_accuracy:.4f}")
+                
+            # ========================
+            # Standard Neural Network
+            # ========================
             else:
                 logger.info(f"Building {network_type.upper()} model...")
                 self.model = build_model(network_type, input_shape, config)
