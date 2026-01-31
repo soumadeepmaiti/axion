@@ -36,6 +36,15 @@ User wants two training modes:
 
 ## What's Been Implemented (Jan 30, 2026)
 
+### Settings Page Reorganization (Jan 31, 2026)
+- ✅ Merged Exchanges into "Data & Exchanges" tab with sub-tabs:
+  - **Exchanges**: Binance, Coinbase, KuCoin, Kraken, Bybit, OKX
+  - **Sentiment APIs**: CryptoPanic, Twitter, Reddit
+  - **Market Data**: Glassnode, Alpha Vantage
+  - **Custom APIs**: 3 custom API slots
+- ✅ Fixed LLM chat/signal endpoints (corrected `get_latest_data` method call)
+- ✅ 5 main tabs: Data & Exchanges, LLM Models, Trading, Alerts, Display
+
 ### LLM Multi-Model Integration (Jan 31, 2026)
 - ✅ **6 LLM Providers Supported:** OpenAI, Claude, Gemini, DeepSeek, Grok, Kimi
 - ✅ **Backend LLM Service:** `/app/backend/services/llm_service.py` with unified API
