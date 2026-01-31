@@ -5,6 +5,7 @@ import Dashboard from "@/pages/Dashboard";
 import Training from "@/pages/Training";
 import Predictions from "@/pages/Predictions";
 import Backtesting from "@/pages/Backtesting";
+import Advisor from "@/pages/Advisor";
 import Settings from "@/pages/Settings";
 import { 
   LayoutDashboard, 
@@ -13,7 +14,8 @@ import {
   Settings as SettingsIcon,
   Activity,
   Cpu,
-  TestTube2
+  TestTube2,
+  MessageSquare
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -23,6 +25,7 @@ const Sidebar = () => {
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/training", icon: Brain, label: "Training" },
     { path: "/backtesting", icon: TestTube2, label: "Backtesting" },
+    { path: "/advisor", icon: MessageSquare, label: "AI Advisor" },
     { path: "/predictions", icon: TrendingUp, label: "Predictions" },
     { path: "/settings", icon: SettingsIcon, label: "Settings" },
   ];
