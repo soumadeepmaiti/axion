@@ -349,25 +349,35 @@ async def make_prediction(request: PredictionRequest):
         prediction = None
         if advanced_training_service.model is not None:
             try:
-                features = market_data['features']
-                seq_len = 50
-                if len(features) < seq_len:
-                    features = np.pad(features, ((seq_len - len(features), 0), (0, 0)), mode='constant')
-                else:
-                    features = features[-seq_len:]
-                features_reshaped = features.reshape(1, seq_len, -1)
+                # Use advanced data pipeline for consistent features
+                adv_data = await advanced_data_pipeline.get_training_data(
+                    symbol=request.symbol,
+                    timeframe='1h',
+                    limit=100
+                )
                 
-                ml_prob = float(advanced_training_service.model.predict(features_reshaped, verbose=0)[0][0])
-                model_accuracy = advanced_training_service.status.get('final_accuracy', 0.5)
-                
-                prediction = {
-                    "direction": int(ml_prob > 0.5),
-                    "probability": round(ml_prob, 4),
-                    "model_status": "trained",
-                    "model_accuracy": round(model_accuracy, 4),
-                    "model_type": advanced_training_service.status.get('network_type', 'unknown')
-                }
-                logger.info(f"Using advanced model for prediction: {ml_prob:.4f}")
+                if adv_data and 'features' in adv_data:
+                    features = adv_data['features']
+                    seq_len = 50
+                    
+                    if len(features) < seq_len:
+                        features = np.pad(features, ((seq_len - len(features), 0), (0, 0)), mode='constant')
+                    else:
+                        features = features[-seq_len:]
+                    
+                    features_reshaped = features.reshape(1, seq_len, -1)
+                    
+                    ml_prob = float(advanced_training_service.model.predict(features_reshaped, verbose=0)[0][0])
+                    model_accuracy = advanced_training_service.status.get('final_accuracy', 0.5)
+                    
+                    prediction = {
+                        "direction": int(ml_prob > 0.5),
+                        "probability": round(ml_prob, 4),
+                        "model_status": "trained",
+                        "model_accuracy": round(model_accuracy, 4),
+                        "model_type": advanced_training_service.status.get('network_type', 'unknown')
+                    }
+                    logger.info(f"Using advanced model for prediction: {ml_prob:.4f}")
             except Exception as e:
                 logger.warning(f"Advanced model prediction failed: {e}")
                 prediction = None
