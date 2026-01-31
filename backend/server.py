@@ -667,10 +667,127 @@ async def save_settings(settings: SettingsModel):
                 else:
                     env_content += f'\nCRYPTOPANIC_API_KEY={settings.api_keys["cryptopanic"]}'
                 env_path.write_text(env_content)
+            
+            # Configure LLM service with API keys
+            llm_keys = {}
+            if settings.api_keys.get("openai"):
+                llm_keys["openai"] = settings.api_keys["openai"]
+            if settings.api_keys.get("claude"):
+                llm_keys["claude"] = settings.api_keys["claude"]
+            if settings.api_keys.get("gemini"):
+                llm_keys["gemini"] = settings.api_keys["gemini"]
+            if settings.api_keys.get("deepseek"):
+                llm_keys["deepseek"] = settings.api_keys["deepseek"]
+            if settings.api_keys.get("grok"):
+                llm_keys["grok"] = settings.api_keys["grok"]
+            if settings.api_keys.get("kimi"):
+                llm_keys["kimi"] = settings.api_keys["kimi"]
+            
+            if llm_keys:
+                llm_service.configure(llm_keys)
         
         return {"status": "saved", "message": "Settings saved successfully"}
     except Exception as e:
         logger.error(f"Error saving settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============== LLM Endpoints ==============
+
+class LLMChatRequest(BaseModel):
+    message: str
+    provider: Optional[str] = "openai"
+    context: Optional[str] = None
+
+class LLMSentimentRequest(BaseModel):
+    text: str
+    providers: Optional[List[str]] = None
+
+class LLMSignalRequest(BaseModel):
+    symbol: str = "BTC/USDT"
+    providers: Optional[List[str]] = None
+
+@api_router.get("/llm/providers")
+async def get_llm_providers():
+    """Get list of configured LLM providers"""
+    return {
+        "providers": llm_service.get_available_providers(),
+        "all_supported": ["openai", "claude", "gemini", "deepseek", "grok", "kimi"]
+    }
+
+@api_router.post("/llm/configure")
+async def configure_llm(api_keys: Dict[str, str]):
+    """Configure LLM providers with API keys"""
+    try:
+        llm_service.configure(api_keys)
+        return {
+            "status": "configured",
+            "providers": llm_service.get_available_providers()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/llm/chat")
+async def llm_chat(request: LLMChatRequest):
+    """Chat with an LLM about trading"""
+    try:
+        # Get market context if not provided
+        context = request.context
+        if not context:
+            try:
+                latest = await data_pipeline.get_latest_price("BTC/USDT")
+                context = f"Current BTC price: ${latest.get('price', 'N/A')}"
+            except Exception:
+                context = None
+        
+        result = await llm_service.chat(request.message, request.provider, context)
+        return sanitize_value(result)
+    except Exception as e:
+        logger.error(f"LLM chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/llm/multi-chat")
+async def llm_multi_chat(request: LLMChatRequest):
+    """Get responses from multiple LLMs"""
+    try:
+        result = await llm_service.multi_chat(request.message, context=request.context)
+        return sanitize_value(result)
+    except Exception as e:
+        logger.error(f"LLM multi-chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/llm/sentiment")
+async def llm_sentiment(request: LLMSentimentRequest):
+    """Analyze sentiment using LLMs"""
+    try:
+        result = await llm_service.analyze_sentiment(request.text, request.providers)
+        return sanitize_value(result)
+    except Exception as e:
+        logger.error(f"LLM sentiment error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/llm/signal")
+async def llm_ensemble_signal(request: LLMSignalRequest):
+    """Get ensemble trading signal from multiple LLMs"""
+    try:
+        # Gather market data
+        latest = await data_pipeline.get_latest_price(request.symbol)
+        df = await data_pipeline.fetch_ohlcv(request.symbol, "1h", limit=24)
+        
+        market_data = {
+            "symbol": request.symbol,
+            "current_price": latest.get("price"),
+            "24h_change": latest.get("change_percent"),
+            "volume": latest.get("volume"),
+            "recent_prices": df["close"].tail(10).tolist() if not df.empty else [],
+            "rsi": df["close"].pct_change().rolling(14).apply(
+                lambda x: 100 - (100 / (1 + (x[x > 0].mean() / abs(x[x < 0].mean())))) if len(x[x < 0]) > 0 else 50
+            ).iloc[-1] if len(df) > 14 else 50
+        }
+        
+        result = await llm_service.get_ensemble_signal(market_data, request.providers)
+        return sanitize_value(result)
+    except Exception as e:
+        logger.error(f"LLM signal error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============== Backtesting Endpoints ==============
