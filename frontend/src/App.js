@@ -95,6 +95,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/training" element={<Training />} />
             <Route path="/backtesting" element={<Backtesting />} />
+            <Route path="/advisor" element={<Advisor />} />
             <Route path="/predictions" element={<Predictions />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
