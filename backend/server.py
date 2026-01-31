@@ -607,6 +607,71 @@ async def load_saved_model(model_path: str):
         logger.error(f"Error loading model: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.delete("/models/{model_path:path}")
+async def delete_saved_model(model_path: str):
+    """Delete a saved model"""
+    try:
+        import shutil
+        model_dir = Path(ROOT_DIR) / "saved_models" / model_path
+        if model_dir.exists():
+            shutil.rmtree(model_dir)
+            return {"status": "deleted", "path": model_path}
+        raise HTTPException(status_code=404, detail="Model not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting model: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============== Settings Endpoints ==============
+
+@api_router.get("/settings")
+async def get_settings():
+    """Get user settings"""
+    try:
+        settings = await db.settings.find_one({"type": "user_settings"}, {"_id": 0})
+        return settings or {}
+    except Exception as e:
+        logger.error(f"Error fetching settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/settings")
+async def save_settings(settings: SettingsModel):
+    """Save user settings"""
+    try:
+        settings_dict = settings.dict()
+        settings_dict["type"] = "user_settings"
+        settings_dict["updated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        await db.settings.update_one(
+            {"type": "user_settings"},
+            {"$set": settings_dict},
+            upsert=True
+        )
+        
+        # Update environment if API keys provided
+        if settings.api_keys:
+            env_path = ROOT_DIR / '.env'
+            env_content = env_path.read_text() if env_path.exists() else ""
+            
+            # Update CryptoPanic key if provided
+            if settings.api_keys.get("cryptopanic"):
+                if "CRYPTOPANIC_API_KEY=" in env_content:
+                    import re
+                    env_content = re.sub(
+                        r'CRYPTOPANIC_API_KEY=.*',
+                        f'CRYPTOPANIC_API_KEY={settings.api_keys["cryptopanic"]}',
+                        env_content
+                    )
+                else:
+                    env_content += f'\nCRYPTOPANIC_API_KEY={settings.api_keys["cryptopanic"]}'
+                env_path.write_text(env_content)
+        
+        return {"status": "saved", "message": "Settings saved successfully"}
+    except Exception as e:
+        logger.error(f"Error saving settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============== Backtesting Endpoints ==============
 
 @api_router.post("/backtest/start")
