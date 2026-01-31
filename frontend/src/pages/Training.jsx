@@ -440,38 +440,142 @@ const Training = () => {
                   Network Architecture
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-3 gap-2">
-                  {NETWORK_TYPES.map((type) => (
-                    <div
-                      key={type.id}
-                      className={`p-2 rounded-lg border cursor-pointer transition-all ${
-                        networkType === type.id
-                          ? 'border-primary bg-primary/10 shadow-lg shadow-primary/20'
-                          : 'border-border bg-secondary/30 hover:border-primary/50'
-                      } ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      onClick={() => !isTraining && setNetworkType(type.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{type.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-mono text-xs font-semibold truncate">{type.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{type.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Selected Network Info */}
-                <div className="p-2 bg-primary/10 rounded border border-primary/30">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{NETWORK_TYPES.find(t => t.id === networkType)?.icon}</span>
-                    <span className="font-mono text-sm font-semibold">{NETWORK_TYPES.find(t => t.id === networkType)?.name}</span>
-                    <Badge className="bg-primary text-[10px]">Selected</Badge>
+              <CardContent className="space-y-4">
+                {/* Single/Multi Model Toggle */}
+                <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg border border-border">
+                  <div className="flex items-center gap-3">
+                    <span className={`text-sm font-mono ${!isMultiModel ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
+                      Single Model
+                    </span>
+                    <Switch 
+                      checked={isMultiModel} 
+                      onCheckedChange={setIsMultiModel}
+                      disabled={isTraining}
+                    />
+                    <span className={`text-sm font-mono ${isMultiModel ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
+                      Multi-Model
+                    </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">{NETWORK_TYPES.find(t => t.id === networkType)?.description}</p>
+                  {isMultiModel && (
+                    <Badge className="bg-primary/20 text-primary border-primary/30">
+                      <Shuffle className="w-3 h-3 mr-1" />
+                      Ensemble Mode
+                    </Badge>
+                  )}
                 </div>
+
+                {/* Single Model Selection */}
+                {!isMultiModel ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-2">
+                      {NETWORK_TYPES.map((type) => (
+                        <div
+                          key={type.id}
+                          className={`p-2 rounded-lg border cursor-pointer transition-all ${
+                            networkType === type.id
+                              ? 'border-primary bg-primary/10 shadow-lg shadow-primary/20'
+                              : 'border-border bg-secondary/30 hover:border-primary/50'
+                          } ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => !isTraining && setNetworkType(type.id)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{type.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-mono text-xs font-semibold truncate">{type.name}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">{type.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Selected Network Info */}
+                    <div className="p-2 bg-primary/10 rounded border border-primary/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">{NETWORK_TYPES.find(t => t.id === networkType)?.icon}</span>
+                        <span className="font-mono text-sm font-semibold">{NETWORK_TYPES.find(t => t.id === networkType)?.name}</span>
+                        <Badge className="bg-primary text-[10px]">Selected</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{NETWORK_TYPES.find(t => t.id === networkType)?.description}</p>
+                    </div>
+                  </>
+                ) : (
+                  /* Multi-Model Selection */
+                  <div className="space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                      Select multiple models to train simultaneously. Their predictions will be combined using the selected ensemble method for higher accuracy.
+                    </p>
+                    
+                    <div className="grid grid-cols-4 gap-2">
+                      {MULTI_MODEL_OPTIONS.map((model) => (
+                        <div
+                          key={model.id}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            selectedModels.includes(model.id)
+                              ? 'border-primary bg-primary/10 shadow-md shadow-primary/20'
+                              : 'border-border bg-secondary/30 hover:border-primary/50'
+                          } ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => {
+                            if (isTraining) return;
+                            if (selectedModels.includes(model.id)) {
+                              if (selectedModels.length > 2) {
+                                setSelectedModels(prev => prev.filter(m => m !== model.id));
+                              }
+                            } else {
+                              setSelectedModels(prev => [...prev, model.id]);
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Checkbox 
+                              checked={selectedModels.includes(model.id)} 
+                              disabled={isTraining || (selectedModels.includes(model.id) && selectedModels.length <= 2)}
+                            />
+                            <span className="text-lg">{model.icon}</span>
+                            <span className="font-mono text-sm font-semibold">{model.name}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Ensemble Method Selection */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-mono">Ensemble Method</Label>
+                      <Select value={ensembleMethod} onValueChange={setEnsembleMethod} disabled={isTraining}>
+                        <SelectTrigger className="bg-secondary border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="voting">Simple Voting - Each model votes equally</SelectItem>
+                          <SelectItem value="weighted">Weighted Voting - Weight by accuracy (recommended)</SelectItem>
+                          <SelectItem value="stacking">Stacking - XGBoost meta-learner on predictions</SelectItem>
+                          <SelectItem value="blending">Blending - Optimized linear combination</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {/* Multi-Model Summary */}
+                    <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Shuffle className="w-4 h-4 text-primary" />
+                        <span className="font-mono text-sm font-semibold text-primary">
+                          {selectedModels.length} Models Selected
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {selectedModels.map(m => (
+                          <Badge key={m} variant="outline" className="text-xs font-mono">
+                            {MULTI_MODEL_OPTIONS.find(opt => opt.id === m)?.icon} {m.toUpperCase()}
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Ensemble: <span className="text-primary font-mono">{ensembleMethod}</span> • 
+                        Each model trains independently, then predictions are combined
+                      </p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
