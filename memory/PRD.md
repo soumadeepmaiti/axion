@@ -214,6 +214,22 @@ User wants two training modes:
 2. **P1:** End-to-End Model Persistence Test - train → save → restart → load → backtest
 3. **P2:** Integrate Real On-Chain/Alternative Data APIs - replace mocked data sources
 
+## All Supported Model Types (12 total)
+| Type | Name | Description |
+|------|------|-------------|
+| lstm | LSTM | Long Short-Term Memory - Best for sequences |
+| gru | GRU | Gated Recurrent Unit - Faster training |
+| transformer | Transformer | Multi-head Attention - State of art |
+| cnn_lstm | CNN + LSTM | Convolutional + Recurrent hybrid |
+| ensemble | Ensemble | LSTM + XGBoost + RandomForest |
+| tft | TFT | Temporal Fusion Transformer - Google's best |
+| multi_task | Multi-Task | Predict direction + volatility + magnitude |
+| gnn | GNN | Graph Neural Network - Asset relationships |
+| multi_tf_attention | Multi-TF Attn | Separate attention per timeframe |
+| rl_dqn | RL - DQN | Deep Q-Network - Learns by trading simulation |
+| rl_ppo | RL - PPO | Proximal Policy Optimization - Advanced RL |
+| multi_model | Multi-Model | Train multiple models & combine predictions |
+
 ## API Endpoints
 | Endpoint | Method | Description |
 |----------|--------|-------------|
