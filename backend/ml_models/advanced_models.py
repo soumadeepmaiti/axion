@@ -521,6 +521,20 @@ def build_model(network_type: str, input_shape: Tuple[int, int], config: Dict) -
     return builders[network_type]()
 
 
+# ==================== RL Model Support ====================
+
+def build_rl_agent(algorithm: str, state_shape: Tuple[int, int], config: Dict = None):
+    """Build Reinforcement Learning agent for trading"""
+    from ml_models.rl_models import build_rl_model
+    return build_rl_model(algorithm, state_shape, config)
+
+
+def get_multi_model_ensemble(input_shape: Tuple[int, int], config: Dict = None):
+    """Get Multi-Model Ensemble for combining multiple architectures"""
+    from ml_models.multi_model_ensemble import MultiModelEnsemble
+    return MultiModelEnsemble(input_shape, config)
+
+
 def save_model(model: Model, symbol: str, network_type: str, 
                metrics: Dict = None, config: Dict = None):
     """Save trained model to disk"""
