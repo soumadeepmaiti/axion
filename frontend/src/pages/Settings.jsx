@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,10 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { 
-  Settings as SettingsIcon, Save, Brain, Cpu, Database, RefreshCw,
-  Key, Shield, Bell, BarChart3, Palette, FolderOpen, Trash2,
+  Settings as SettingsIcon, Save, Brain, Database, RefreshCw,
+  Key, Shield, Bell, BarChart3, Palette,
   Eye, EyeOff, CheckCircle, AlertTriangle, Mail, DollarSign,
-  TrendingUp, Clock, Globe, Moon, Sun, Monitor
+  TrendingUp, Moon, Sun, Monitor, Trash2
 } from "lucide-react";
 import { API } from "@/lib/api";
 
@@ -31,21 +30,6 @@ const getSettings = async () => {
 
 const saveSettings = async (settings) => {
   const response = await API.post('/settings', settings);
-  return response.data;
-};
-
-const getSavedModels = async () => {
-  const response = await API.get('/models/saved');
-  return response.data;
-};
-
-const deleteModel = async (modelPath) => {
-  const response = await API.delete(`/models/${encodeURIComponent(modelPath)}`);
-  return response.data;
-};
-
-const loadModel = async (modelPath) => {
-  const response = await API.post('/models/load', null, { params: { model_path: modelPath } });
   return response.data;
 };
 
@@ -91,15 +75,6 @@ const Settings = () => {
   });
   const [newPriceAlert, setNewPriceAlert] = useState({ symbol: "BTC/USDT", price: "", direction: "above" });
 
-  // Data Source Settings
-  const [dataSettings, setDataSettings] = useState({
-    exchange: "binanceus",
-    default_symbol: "BTC/USDT",
-    default_timeframe: "1h",
-    trading_pairs: ["BTC/USDT", "ETH/USDT"],
-    data_lookback_days: 30
-  });
-
   // Theme Settings
   const [themeSettings, setThemeSettings] = useState({
     theme: "dark",
@@ -108,10 +83,6 @@ const Settings = () => {
     show_indicators: true,
     animation_enabled: true
   });
-
-  // Model Management
-  const [savedModels, setSavedModels] = useState([]);
-  const [activeModel, setActiveModel] = useState(null);
   
   // System Status
   const [health, setHealth] = useState(null);
@@ -122,9 +93,8 @@ const Settings = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [settingsRes, modelsRes, healthRes] = await Promise.all([
+      const [settingsRes, healthRes] = await Promise.all([
         getSettings(),
-        getSavedModels(),
         healthCheck()
       ]);
 
@@ -132,12 +102,9 @@ const Settings = () => {
         if (settingsRes.api_keys) setApiKeys(prev => ({ ...prev, ...settingsRes.api_keys }));
         if (settingsRes.trading) setTradingSettings(prev => ({ ...prev, ...settingsRes.trading }));
         if (settingsRes.notifications) setNotifications(prev => ({ ...prev, ...settingsRes.notifications }));
-        if (settingsRes.data_source) setDataSettings(prev => ({ ...prev, ...settingsRes.data_source }));
         if (settingsRes.theme) setThemeSettings(prev => ({ ...prev, ...settingsRes.theme }));
-        if (settingsRes.active_model) setActiveModel(settingsRes.active_model);
       }
 
-      setSavedModels(modelsRes?.models || []);
       setHealth(healthRes);
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -158,9 +125,7 @@ const Settings = () => {
         api_keys: apiKeys,
         trading: tradingSettings,
         notifications: notifications,
-        data_source: dataSettings,
-        theme: themeSettings,
-        active_model: activeModel
+        theme: themeSettings
       });
       toast.success("Settings saved successfully!");
     } catch (error) {
@@ -173,29 +138,6 @@ const Settings = () => {
   // Toggle key visibility
   const toggleKeyVisibility = (key) => {
     setShowKeys(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  // Delete model
-  const handleDeleteModel = async (modelPath) => {
-    if (!confirm("Are you sure you want to delete this model?")) return;
-    try {
-      await deleteModel(modelPath);
-      toast.success("Model deleted");
-      fetchData();
-    } catch (error) {
-      toast.error("Failed to delete model");
-    }
-  };
-
-  // Load model
-  const handleLoadModel = async (model) => {
-    try {
-      await loadModel(model.path);
-      setActiveModel(model.path);
-      toast.success(`Model loaded: ${model.network_type}`);
-    } catch (error) {
-      toast.error("Failed to load model");
-    }
   };
 
   // Add price alert
@@ -226,7 +168,7 @@ const Settings = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground font-mono">Settings</h1>
-          <p className="text-muted-foreground mt-1">Configure your trading system</p>
+          <p className="text-muted-foreground mt-1">Configure API keys, trading defaults, and preferences</p>
         </div>
         <Button 
           data-testid="save-all-settings-btn"
@@ -239,15 +181,13 @@ const Settings = () => {
         </Button>
       </div>
 
-      {/* Main Tabs */}
+      {/* Main Tabs - Now 4 tabs */}
       <Tabs defaultValue="api-keys" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="api-keys" className="gap-1 text-xs"><Key className="w-3 h-3" /> API Keys</TabsTrigger>
-          <TabsTrigger value="trading" className="gap-1 text-xs"><Shield className="w-3 h-3" /> Trading</TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-1 text-xs"><Bell className="w-3 h-3" /> Alerts</TabsTrigger>
-          <TabsTrigger value="data" className="gap-1 text-xs"><Database className="w-3 h-3" /> Data</TabsTrigger>
-          <TabsTrigger value="theme" className="gap-1 text-xs"><Palette className="w-3 h-3" /> Display</TabsTrigger>
-          <TabsTrigger value="models" className="gap-1 text-xs"><Brain className="w-3 h-3" /> Models</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="api-keys" className="gap-2"><Key className="w-4 h-4" /> API Keys</TabsTrigger>
+          <TabsTrigger value="trading" className="gap-2"><Shield className="w-4 h-4" /> Trading</TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2"><Bell className="w-4 h-4" /> Alerts</TabsTrigger>
+          <TabsTrigger value="theme" className="gap-2"><Palette className="w-4 h-4" /> Display</TabsTrigger>
         </TabsList>
 
         {/* ==================== API KEYS TAB ==================== */}
@@ -414,6 +354,19 @@ const Settings = () => {
                       {apiKeys.glassnode ? <CheckCircle className="w-3 h-3 text-success" /> : <AlertTriangle className="w-3 h-3 text-warning" />}
                       <span className="text-xs">Glassnode</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* System Status */}
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+                  <h4 className="text-xs font-mono text-primary mb-2">System Status</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {health?.services && Object.entries(health.services).map(([service, status]) => (
+                      <div key={service} className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${status === 'active' || status === 'connected' ? 'bg-success' : 'bg-warning'}`}></div>
+                        <span className="text-xs capitalize">{service.replace(/_/g, ' ')}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </CardContent>
@@ -699,122 +652,6 @@ const Settings = () => {
           </div>
         </TabsContent>
 
-        {/* ==================== DATA SOURCE TAB ==================== */}
-        <TabsContent value="data" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* Exchange Settings */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="font-mono text-base flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-primary" />
-                  Exchange Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">Exchange</Label>
-                  <Select value={dataSettings.exchange} onValueChange={(v) => setDataSettings({ ...dataSettings, exchange: v })}>
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="binanceus">Binance US</SelectItem>
-                      <SelectItem value="binance">Binance Global</SelectItem>
-                      <SelectItem value="coinbase">Coinbase</SelectItem>
-                      <SelectItem value="kraken">Kraken</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs">Default Trading Pair</Label>
-                  <Select value={dataSettings.default_symbol} onValueChange={(v) => setDataSettings({ ...dataSettings, default_symbol: v })}>
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BTC/USDT">BTC/USDT</SelectItem>
-                      <SelectItem value="ETH/USDT">ETH/USDT</SelectItem>
-                      <SelectItem value="SOL/USDT">SOL/USDT</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs">Default Timeframe</Label>
-                  <Select value={dataSettings.default_timeframe} onValueChange={(v) => setDataSettings({ ...dataSettings, default_timeframe: v })}>
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5m">5 Minutes</SelectItem>
-                      <SelectItem value="15m">15 Minutes</SelectItem>
-                      <SelectItem value="1h">1 Hour</SelectItem>
-                      <SelectItem value="4h">4 Hours</SelectItem>
-                      <SelectItem value="1d">1 Day</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Data Range */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="font-mono text-base flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-primary" />
-                  Data Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <Label>Data Lookback</Label>
-                    <span className="font-mono text-primary">{dataSettings.data_lookback_days} days</span>
-                  </div>
-                  <Slider 
-                    value={[dataSettings.data_lookback_days]} 
-                    onValueChange={([v]) => setDataSettings({ ...dataSettings, data_lookback_days: v })}
-                    min={7} max={365} step={7}
-                  />
-                  <p className="text-xs text-muted-foreground">Historical data for training/analysis</p>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <Label className="text-xs">Active Trading Pairs</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"].map((pair) => (
-                      <Badge 
-                        key={pair}
-                        variant={dataSettings.trading_pairs.includes(pair) ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => {
-                          if (dataSettings.trading_pairs.includes(pair)) {
-                            setDataSettings({ 
-                              ...dataSettings, 
-                              trading_pairs: dataSettings.trading_pairs.filter(p => p !== pair) 
-                            });
-                          } else {
-                            setDataSettings({ 
-                              ...dataSettings, 
-                              trading_pairs: [...dataSettings.trading_pairs, pair] 
-                            });
-                          }
-                        }}
-                      >
-                        {pair}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
         {/* ==================== THEME TAB ==================== */}
         <TabsContent value="theme" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -913,118 +750,6 @@ const Settings = () => {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        {/* ==================== MODELS TAB ==================== */}
-        <TabsContent value="models" className="space-y-6">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="font-mono text-lg flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-primary" />
-                  Saved Models
-                </CardTitle>
-                <Button variant="outline" size="sm" onClick={fetchData}>
-                  <RefreshCw className="w-4 h-4 mr-1" /> Refresh
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {savedModels.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {savedModels.map((model, i) => (
-                    <div 
-                      key={i} 
-                      className={`p-4 rounded-lg border transition-all ${
-                        activeModel === model.path 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-border bg-secondary hover:border-primary/50'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <p className="font-mono text-sm font-semibold">{model.symbol}</p>
-                          <p className="text-xs text-muted-foreground">{model.timestamp}</p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {activeModel === model.path && (
-                            <Badge className="bg-success text-xs">Active</Badge>
-                          )}
-                          <Badge className="bg-primary text-xs">{model.network_type?.toUpperCase()}</Badge>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-1 mb-3 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Accuracy</span>
-                          <span className="font-mono text-success">{((model.metrics?.final_accuracy || 0) * 100).toFixed(1)}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Epochs</span>
-                          <span className="font-mono">{model.metrics?.epochs_trained || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Timeframe</span>
-                          <span className="font-mono">{model.config?.timeframe || '-'}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          className="flex-1 gap-1"
-                          variant={activeModel === model.path ? "outline" : "default"}
-                          onClick={() => handleLoadModel(model)}
-                          disabled={activeModel === model.path}
-                        >
-                          <FolderOpen className="w-3 h-3" />
-                          {activeModel === model.path ? "Loaded" : "Load"}
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={() => handleDeleteModel(model.path)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Brain className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No saved models</p>
-                  <p className="text-xs text-muted-foreground mt-1">Train a model to see it here</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* System Status */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="font-mono text-base flex items-center gap-2">
-                <Database className="w-4 h-4 text-primary" />
-                System Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {health?.services && Object.entries(health.services).map(([service, status]) => (
-                  <div key={service} className="p-4 bg-secondary rounded-lg">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">{service.replace(/_/g, ' ')}</p>
-                    <Badge className={status === 'active' || status === 'connected' ? 'bg-success mt-2' : 'bg-warning mt-2'}>
-                      {status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 p-3 bg-secondary/50 rounded-lg">
-                <p className="text-xs text-muted-foreground">Last updated: {health?.timestamp ? new Date(health.timestamp).toLocaleString() : 'N/A'}</p>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
