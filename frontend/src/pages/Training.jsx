@@ -221,7 +221,7 @@ const Training = () => {
         end_date: endDate ? endDate.toISOString() : null,
         timeframe,
         mode,
-        network_type: networkType,
+        network_type: isMultiModel ? 'multi_model' : networkType,
         strategies: selectedStrategies,
         num_lstm_layers: numLstmLayers,
         lstm_units: lstmUnits.slice(0, numLstmLayers),
@@ -243,6 +243,7 @@ const Training = () => {
         multi_timeframe: multiTimeframe,
         save_model: saveModel,
         // Multi-Model Config
+        is_multi_model: isMultiModel,
         selected_models: selectedModels,
         ensemble_method: ensembleMethod,
         // RL Config
