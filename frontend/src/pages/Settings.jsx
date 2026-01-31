@@ -193,14 +193,230 @@ const Settings = () => {
         </Button>
       </div>
 
-      {/* Main Tabs - Now 4 tabs */}
-      <Tabs defaultValue="api-keys" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="api-keys" className="gap-2"><Key className="w-4 h-4" /> API Keys</TabsTrigger>
+      {/* Main Tabs - 5 tabs */}
+      <Tabs defaultValue="llm" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="llm" className="gap-2"><Brain className="w-4 h-4" /> LLM Models</TabsTrigger>
+          <TabsTrigger value="api-keys" className="gap-2"><Key className="w-4 h-4" /> Data APIs</TabsTrigger>
           <TabsTrigger value="trading" className="gap-2"><Shield className="w-4 h-4" /> Trading</TabsTrigger>
           <TabsTrigger value="notifications" className="gap-2"><Bell className="w-4 h-4" /> Alerts</TabsTrigger>
           <TabsTrigger value="theme" className="gap-2"><Palette className="w-4 h-4" /> Display</TabsTrigger>
         </TabsList>
+
+        {/* ==================== LLM MODELS TAB ==================== */}
+        <TabsContent value="llm" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* OpenAI & Claude */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-primary" />
+                  OpenAI & Claude
+                </CardTitle>
+                <CardDescription>Premium LLM providers for trading analysis</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* OpenAI */}
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    OpenAI API Key (GPT-4, GPT-5)
+                    {llmProviders.includes("openai") && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      data-testid="openai-key-input"
+                      type={showKeys.openai ? "text" : "password"}
+                      placeholder="sk-..."
+                      value={apiKeys.openai}
+                      onChange={(e) => setApiKeys({ ...apiKeys, openai: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('openai')}>
+                      {showKeys.openai ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Get key from platform.openai.com</p>
+                </div>
+
+                <Separator />
+
+                {/* Claude */}
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    Claude API Key (Anthropic)
+                    {llmProviders.includes("claude") && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showKeys.claude ? "text" : "password"}
+                      placeholder="sk-ant-..."
+                      value={apiKeys.claude}
+                      onChange={(e) => setApiKeys({ ...apiKeys, claude: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('claude')}>
+                      {showKeys.claude ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Get key from console.anthropic.com</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Gemini & DeepSeek */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-primary" />
+                  Gemini & DeepSeek
+                </CardTitle>
+                <CardDescription>Alternative LLM providers</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Gemini */}
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    Google Gemini API Key
+                    {llmProviders.includes("gemini") && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showKeys.gemini ? "text" : "password"}
+                      placeholder="AI..."
+                      value={apiKeys.gemini}
+                      onChange={(e) => setApiKeys({ ...apiKeys, gemini: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('gemini')}>
+                      {showKeys.gemini ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Get key from aistudio.google.com</p>
+                </div>
+
+                <Separator />
+
+                {/* DeepSeek */}
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    DeepSeek API Key
+                    {llmProviders.includes("deepseek") && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showKeys.deepseek ? "text" : "password"}
+                      placeholder="sk-..."
+                      value={apiKeys.deepseek}
+                      onChange={(e) => setApiKeys({ ...apiKeys, deepseek: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('deepseek')}>
+                      {showKeys.deepseek ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Get key from platform.deepseek.com</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Grok & Kimi */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-primary" />
+                  Grok & Kimi
+                </CardTitle>
+                <CardDescription>Emerging LLM providers</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Grok */}
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    xAI Grok API Key
+                    {llmProviders.includes("grok") && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showKeys.grok ? "text" : "password"}
+                      placeholder="xai-..."
+                      value={apiKeys.grok}
+                      onChange={(e) => setApiKeys({ ...apiKeys, grok: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('grok')}>
+                      {showKeys.grok ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Get key from x.ai</p>
+                </div>
+
+                <Separator />
+
+                {/* Kimi */}
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    Moonshot Kimi API Key
+                    {llmProviders.includes("kimi") && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showKeys.kimi ? "text" : "password"}
+                      placeholder="..."
+                      value={apiKeys.kimi}
+                      onChange={(e) => setApiKeys({ ...apiKeys, kimi: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('kimi')}>
+                      {showKeys.kimi ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Get key from moonshot.cn</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* LLM Status */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Database className="w-4 h-4 text-primary" />
+                  LLM Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    {["openai", "claude", "gemini", "deepseek", "grok", "kimi"].map((provider) => (
+                      <div key={provider} className={`p-3 rounded-lg border ${llmProviders.includes(provider) ? 'border-success bg-success/10' : 'border-border bg-secondary/30'}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-sm capitalize">{provider}</span>
+                          {llmProviders.includes(provider) ? (
+                            <CheckCircle className="w-4 h-4 text-success" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {llmProviders.includes(provider) ? "Ready" : "Not configured"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+                    <h4 className="text-xs font-mono text-primary mb-2">Active Providers: {llmProviders.length}/6</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {llmProviders.length > 0 
+                        ? `Using: ${llmProviders.join(", ")}`
+                        : "Add API keys and save to enable LLM features"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         {/* ==================== API KEYS TAB ==================== */}
         <TabsContent value="api-keys" className="space-y-6">
