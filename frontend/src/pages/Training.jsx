@@ -805,6 +805,140 @@ const Training = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Multi-Model & RL Configuration */}
+          {(networkType === 'multi_model' || networkType.startsWith('rl_')) && (
+            <Card className="bg-card border-border border-primary/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  {networkType === 'multi_model' ? (
+                    <>
+                      <Shuffle className="w-4 h-4 text-primary" />
+                      Multi-Model Ensemble Configuration
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 text-primary" />
+                      Reinforcement Learning Configuration
+                    </>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {networkType === 'multi_model' ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Train multiple model architectures simultaneously and combine their predictions for higher accuracy.
+                    </p>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-xs">Select Models to Train (at least 2)</Label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {['lstm', 'gru', 'transformer', 'cnn_lstm'].map((modelType) => (
+                          <div
+                            key={modelType}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                              selectedModels.includes(modelType)
+                                ? 'border-primary bg-primary/10'
+                                : 'border-border bg-secondary/30 hover:border-primary/50'
+                            }`}
+                            onClick={() => {
+                              if (selectedModels.includes(modelType)) {
+                                if (selectedModels.length > 2) {
+                                  setSelectedModels(prev => prev.filter(m => m !== modelType));
+                                }
+                              } else {
+                                setSelectedModels(prev => [...prev, modelType]);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Checkbox checked={selectedModels.includes(modelType)} />
+                              <span className="font-mono text-sm uppercase">{modelType}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-xs">Ensemble Method</Label>
+                      <Select value={ensembleMethod} onValueChange={setEnsembleMethod}>
+                        <SelectTrigger className="bg-secondary border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="voting">Simple Voting - Each model votes equally</SelectItem>
+                          <SelectItem value="weighted">Weighted Voting - Weight by accuracy (recommended)</SelectItem>
+                          <SelectItem value="stacking">Stacking - Meta-learner on predictions</SelectItem>
+                          <SelectItem value="blending">Blending - Optimized linear combination</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+                      <p className="text-xs text-primary font-mono">
+                        {selectedModels.length} models selected: {selectedModels.join(', ').toUpperCase()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Ensemble method: {ensembleMethod}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      {networkType === 'rl_dqn' 
+                        ? 'Deep Q-Network learns optimal trading actions (BUY/HOLD/SELL) through simulated trading experience.'
+                        : 'Proximal Policy Optimization uses advanced policy gradient methods for stable learning.'}
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <Label>Training Episodes</Label>
+                          <span className="font-mono text-primary">{rlEpisodes}</span>
+                        </div>
+                        <Slider 
+                          value={[rlEpisodes]} 
+                          onValueChange={([v]) => setRlEpisodes(v)} 
+                          min={50} max={500} step={50} 
+                          disabled={isTraining}
+                        />
+                        <p className="text-xs text-muted-foreground">More episodes = better learning but longer training</p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <Label>Discount Factor (γ)</Label>
+                          <span className="font-mono text-primary">{rlGamma}</span>
+                        </div>
+                        <Slider 
+                          value={[rlGamma * 100]} 
+                          onValueChange={([v]) => setRlGamma(v / 100)} 
+                          min={90} max={99} step={1} 
+                          disabled={isTraining}
+                        />
+                        <p className="text-xs text-muted-foreground">Higher = values future rewards more</p>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+                      <p className="text-xs font-mono">
+                        {networkType === 'rl_dqn' ? '🤖 DQN Agent' : '🎮 PPO Agent'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Actions: BUY (open long), HOLD (wait), SELL (open short)
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Reward: Trading profit/loss with transaction costs
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* ==================== SAVED MODELS TAB ==================== */}
