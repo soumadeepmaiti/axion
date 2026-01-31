@@ -770,14 +770,14 @@ async def llm_ensemble_signal(request: LLMSignalRequest):
     """Get ensemble trading signal from multiple LLMs"""
     try:
         # Gather market data
-        latest = await data_pipeline.get_latest_price(request.symbol)
+        latest = await data_pipeline.get_latest_data(request.symbol)
         df = await data_pipeline.fetch_ohlcv(request.symbol, "1h", limit=24)
         
         market_data = {
             "symbol": request.symbol,
-            "current_price": latest.get("price"),
-            "24h_change": latest.get("change_percent"),
-            "volume": latest.get("volume"),
+            "current_price": latest.get("current_price"),
+            "24h_high": latest.get("high_24h"),
+            "24h_low": latest.get("low_24h"),
             "recent_prices": df["close"].tail(10).tolist() if not df.empty else [],
             "rsi": df["close"].pct_change().rolling(14).apply(
                 lambda x: 100 - (100 / (1 + (x[x > 0].mean() / abs(x[x < 0].mean())))) if len(x[x < 0]) > 0 else 50
