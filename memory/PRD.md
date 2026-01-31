@@ -36,6 +36,15 @@ User wants two training modes:
 
 ## What's Been Implemented (Jan 30, 2026)
 
+### Settings Page Overhaul (Jan 31, 2026)
+- ✅ **API Keys Management:** CryptoPanic, Twitter, Reddit, Glassnode, Alpha Vantage
+- ✅ **Trading Settings:** Stop-loss, take-profit, position size, risk per trade, trailing stop
+- ✅ **Notification Settings:** Email alerts, price alerts with add/remove functionality
+- ✅ **Data Source Settings:** Exchange selection, default symbol/timeframe, trading pairs
+- ✅ **Theme/Display Settings:** Dark/Light/System mode, chart style preferences
+- ✅ **Model Management:** View all saved models, load/delete models, see active model
+- ✅ Added backend endpoints: GET/POST /api/settings, DELETE /api/models/{path}
+
 ### Backtesting Framework (Jan 30, 2026)
 - ✅ Created `/app/backend/services/backtesting_service.py` - Full backtesting simulation engine
 - ✅ Added API endpoints: POST /api/backtest/start, GET /api/backtest/status, GET /api/backtest/result, POST /api/backtest/stop, GET /api/backtest/history
