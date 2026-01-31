@@ -490,7 +490,7 @@ const Advisor = () => {
                     <div className="text-center">
                       <Vote className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                       <p className="text-muted-foreground">No signal yet</p>
-                      <p className="text-xs text-muted-foreground mt-1">Click "Get Ensemble Signal" to start</p>
+                      <p className="text-xs text-muted-foreground mt-1">Click &quot;Get Ensemble Signal&quot; to start</p>
                     </div>
                   </div>
                 )}
