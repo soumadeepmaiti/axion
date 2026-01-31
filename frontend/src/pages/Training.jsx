@@ -1077,6 +1077,9 @@ const Training = () => {
                 <CardTitle className="font-mono text-lg flex items-center gap-2">
                   <Database className="w-5 h-5 text-primary" />
                   Saved Models
+                  {savedModels.length > 0 && (
+                    <Badge variant="outline" className="ml-2">{savedModels.length} models</Badge>
+                  )}
                 </CardTitle>
                 <Button variant="outline" size="sm" onClick={fetchSavedModels}>
                   <RefreshCw className="w-4 h-4 mr-1" /> Refresh
@@ -1086,61 +1089,115 @@ const Training = () => {
             <CardContent>
               {savedModels.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {savedModels.map((model, i) => (
-                    <div key={i} className="p-4 bg-secondary rounded-lg border border-border hover:border-primary/50 transition-all">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <p className="font-mono text-sm font-semibold">{model.symbol}</p>
-                          <p className="text-xs text-muted-foreground">{model.timestamp}</p>
+                  {savedModels.map((model, i) => {
+                    // Get model icon and color based on network type
+                    const getModelStyle = (type) => {
+                      const styles = {
+                        'lstm': { icon: '🧠', color: 'from-pink-500/20 to-purple-500/20', border: 'border-pink-500/50', badge: 'bg-pink-500/20 text-pink-300' },
+                        'gru': { icon: '⚡', color: 'from-yellow-500/20 to-orange-500/20', border: 'border-yellow-500/50', badge: 'bg-yellow-500/20 text-yellow-300' },
+                        'transformer': { icon: '🔮', color: 'from-violet-500/20 to-indigo-500/20', border: 'border-violet-500/50', badge: 'bg-violet-500/20 text-violet-300' },
+                        'cnn_lstm': { icon: '🔗', color: 'from-cyan-500/20 to-blue-500/20', border: 'border-cyan-500/50', badge: 'bg-cyan-500/20 text-cyan-300' },
+                        'ensemble': { icon: '🎯', color: 'from-green-500/20 to-emerald-500/20', border: 'border-green-500/50', badge: 'bg-green-500/20 text-green-300' },
+                        'tft': { icon: '🌟', color: 'from-amber-500/20 to-yellow-500/20', border: 'border-amber-500/50', badge: 'bg-amber-500/20 text-amber-300' },
+                        'multi_task': { icon: '📊', color: 'from-blue-500/20 to-indigo-500/20', border: 'border-blue-500/50', badge: 'bg-blue-500/20 text-blue-300' },
+                        'gnn': { icon: '🕸️', color: 'from-rose-500/20 to-pink-500/20', border: 'border-rose-500/50', badge: 'bg-rose-500/20 text-rose-300' },
+                        'rl_dqn': { icon: '🤖', color: 'from-emerald-500/20 to-teal-500/20', border: 'border-emerald-500/50', badge: 'bg-emerald-500/20 text-emerald-300' },
+                        'rl_ppo': { icon: '🎮', color: 'from-purple-500/20 to-fuchsia-500/20', border: 'border-purple-500/50', badge: 'bg-purple-500/20 text-purple-300' },
+                        'multi_model': { icon: '🔀', color: 'from-teal-500/20 to-cyan-500/20', border: 'border-teal-500/50', badge: 'bg-teal-500/20 text-teal-300' },
+                      };
+                      return styles[type] || styles['lstm'];
+                    };
+                    
+                    const style = getModelStyle(model.network_type);
+                    const accuracy = (model.metrics?.final_accuracy || 0) * 100;
+                    
+                    return (
+                      <div 
+                        key={i} 
+                        className={`relative overflow-hidden rounded-xl border-2 ${style.border} bg-gradient-to-br ${style.color} hover:shadow-lg hover:shadow-primary/10 transition-all duration-300`}
+                      >
+                        {/* Model Type Header */}
+                        <div className="px-4 pt-4 pb-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">{style.icon}</span>
+                              <div>
+                                <Badge className={`${style.badge} font-mono text-xs px-2 py-0.5`}>
+                                  {model.network_type?.toUpperCase()}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-mono text-lg font-bold text-primary">{accuracy.toFixed(1)}%</p>
+                              <p className="text-[10px] text-muted-foreground">accuracy</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 mb-3">
+                            <p className="font-mono text-sm font-semibold">{model.symbol}</p>
+                            <span className="text-muted-foreground">•</span>
+                            <p className="text-xs text-muted-foreground">{model.config?.timeframe || '1h'}</p>
+                          </div>
                         </div>
-                        <Badge className="bg-primary">{model.network_type?.toUpperCase()}</Badge>
+                        
+                        {/* Stats */}
+                        <div className="px-4 pb-3 grid grid-cols-3 gap-2">
+                          <div className="text-center p-2 bg-background/30 rounded-lg">
+                            <p className="font-mono text-sm font-bold">{model.metrics?.epochs_trained || 0}</p>
+                            <p className="text-[10px] text-muted-foreground">Epochs</p>
+                          </div>
+                          <div className="text-center p-2 bg-background/30 rounded-lg">
+                            <p className="font-mono text-sm font-bold">{model.config?.sequence_length || 50}</p>
+                            <p className="text-[10px] text-muted-foreground">Seq Len</p>
+                          </div>
+                          <div className="text-center p-2 bg-background/30 rounded-lg">
+                            <p className="font-mono text-sm font-bold">{model.config?.batch_size || 32}</p>
+                            <p className="text-[10px] text-muted-foreground">Batch</p>
+                          </div>
+                        </div>
+                        
+                        {/* Timestamp */}
+                        <div className="px-4 pb-2">
+                          <p className="text-[10px] text-muted-foreground">
+                            Saved: {model.timestamp?.replace(/_/g, ' @ ').replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}
+                          </p>
+                        </div>
+                        
+                        {/* Actions */}
+                        <div className="flex border-t border-border/50">
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            className="flex-1 rounded-none rounded-bl-xl gap-1 h-10 hover:bg-primary/20"
+                            onClick={() => handleLoadModel(model.path)}
+                          >
+                            <FolderOpen className="w-4 h-4" />
+                            Load Model
+                          </Button>
+                          <div className="w-px bg-border/50" />
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            className="rounded-none rounded-br-xl h-10 px-4 hover:bg-destructive/20 text-destructive"
+                            onClick={async () => {
+                              if (!confirm("Delete this model?")) return;
+                              try {
+                                await API.delete(`/models/${encodeURIComponent(model.path)}`);
+                                toast.success("Model deleted");
+                                fetchSavedModels();
+                              } catch {
+                                toast.error("Failed to delete");
+                              }
+                            }}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </Button>
+                        </div>
                       </div>
-                      
-                      <div className="space-y-2 mb-3">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">Accuracy</span>
-                          <span className="font-mono text-success">{((model.metrics?.final_accuracy || 0) * 100).toFixed(1)}%</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">Epochs</span>
-                          <span className="font-mono">{model.metrics?.epochs_trained || 0}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">Timeframe</span>
-                          <span className="font-mono">{model.config?.timeframe || '-'}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          className="flex-1 gap-1"
-                          onClick={() => handleLoadModel(model.path)}
-                        >
-                          <FolderOpen className="w-3 h-3" />
-                          Load
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={async () => {
-                            if (!confirm("Delete this model?")) return;
-                            try {
-                              await API.delete(`/models/${encodeURIComponent(model.path)}`);
-                              toast.success("Model deleted");
-                              fetchSavedModels();
-                            } catch {
-                              toast.error("Failed to delete");
-                            }
-                          }}
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-12">
