@@ -826,16 +826,40 @@ const Training = () => {
                           <span className="text-muted-foreground">Epochs</span>
                           <span className="font-mono">{model.metrics?.epochs_trained || 0}</span>
                         </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Timeframe</span>
+                          <span className="font-mono">{model.config?.timeframe || '-'}</span>
+                        </div>
                       </div>
 
-                      <Button 
-                        size="sm" 
-                        className="w-full gap-2"
-                        onClick={() => handleLoadModel(model.path)}
-                      >
-                        <FolderOpen className="w-4 h-4" />
-                        Load Model
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          className="flex-1 gap-1"
+                          onClick={() => handleLoadModel(model.path)}
+                        >
+                          <FolderOpen className="w-3 h-3" />
+                          Load
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={async () => {
+                            if (!confirm("Delete this model?")) return;
+                            try {
+                              await API.delete(`/models/${encodeURIComponent(model.path)}`);
+                              toast.success("Model deleted");
+                              fetchSavedModels();
+                            } catch {
+                              toast.error("Failed to delete");
+                            }
+                          }}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
