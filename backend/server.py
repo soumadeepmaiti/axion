@@ -984,9 +984,9 @@ async def startup_event():
             
             if best_accuracy > 0.5:  # Only load if better than random
                 model_path = best_model['path']
-                loaded_model = load_model(model_path)
+                loaded_model, metadata = load_model(model_path)  # Returns tuple!
                 
-                if loaded_model:
+                if loaded_model is not None:
                     advanced_training_service.model = loaded_model
                     advanced_training_service.status['final_accuracy'] = best_accuracy
                     advanced_training_service.status['network_type'] = best_model.get('network_type', 'unknown')
