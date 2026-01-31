@@ -965,13 +965,35 @@ app.include_router(api_router)
 async def startup_event():
     """Initialize services on startup"""
     logger.info("Starting Omni-Crypto Hybrid Trading System")
-    # Build model on startup
+    
+    # Build basic model on startup
     if hasattr(hybrid_model, 'build_model'):
         try:
             hybrid_model.build_model()
             logger.info("Model built on startup")
         except Exception as e:
             logger.warning(f"Could not build model on startup: {e}")
+    
+    # Try to load the best saved model for predictions
+    try:
+        saved_models = list_saved_models()
+        if saved_models:
+            # Sort by accuracy and get the best one
+            best_model = max(saved_models, key=lambda m: m.get('metrics', {}).get('final_accuracy', 0))
+            best_accuracy = best_model.get('metrics', {}).get('final_accuracy', 0)
+            
+            if best_accuracy > 0.5:  # Only load if better than random
+                model_path = best_model['path']
+                loaded_model = load_model(model_path)
+                
+                if loaded_model:
+                    advanced_training_service.model = loaded_model
+                    advanced_training_service.status['final_accuracy'] = best_accuracy
+                    advanced_training_service.status['network_type'] = best_model.get('network_type', 'unknown')
+                    advanced_training_service.status['loaded_model_path'] = model_path
+                    logger.info(f"Auto-loaded best model: {best_model.get('network_type')} with {best_accuracy:.2%} accuracy")
+    except Exception as e:
+        logger.warning(f"Could not auto-load saved model: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
