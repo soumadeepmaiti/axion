@@ -218,15 +218,368 @@ const Settings = () => {
         </Button>
       </div>
 
-      {/* Main Tabs - 5 tabs */}
-      <Tabs defaultValue="llm" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="llm" className="gap-2"><Brain className="w-4 h-4" /> LLM Models</TabsTrigger>
-          <TabsTrigger value="api-keys" className="gap-2"><Key className="w-4 h-4" /> Data APIs</TabsTrigger>
-          <TabsTrigger value="trading" className="gap-2"><Shield className="w-4 h-4" /> Trading</TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2"><Bell className="w-4 h-4" /> Alerts</TabsTrigger>
-          <TabsTrigger value="theme" className="gap-2"><Palette className="w-4 h-4" /> Display</TabsTrigger>
+      {/* Main Tabs - 6 tabs */}
+      <Tabs defaultValue="exchanges" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="exchanges" className="gap-1 text-xs"><Database className="w-3 h-3" /> Exchanges</TabsTrigger>
+          <TabsTrigger value="llm" className="gap-1 text-xs"><Brain className="w-3 h-3" /> LLM Models</TabsTrigger>
+          <TabsTrigger value="api-keys" className="gap-1 text-xs"><Key className="w-3 h-3" /> Data APIs</TabsTrigger>
+          <TabsTrigger value="trading" className="gap-1 text-xs"><Shield className="w-3 h-3" /> Trading</TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-1 text-xs"><Bell className="w-3 h-3" /> Alerts</TabsTrigger>
+          <TabsTrigger value="theme" className="gap-1 text-xs"><Palette className="w-3 h-3" /> Display</TabsTrigger>
         </TabsList>
+
+        {/* ==================== EXCHANGES TAB ==================== */}
+        <TabsContent value="exchanges" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Binance & Coinbase */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Database className="w-4 h-4 text-primary" />
+                  Binance
+                </CardTitle>
+                <CardDescription>World&apos;s largest crypto exchange</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    API Key
+                    {apiKeys.binance_api_key && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showKeys.binance ? "text" : "password"}
+                      placeholder="Enter Binance API key"
+                      value={apiKeys.binance_api_key}
+                      onChange={(e) => setApiKeys({ ...apiKeys, binance_api_key: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('binance')}>
+                      {showKeys.binance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">API Secret</Label>
+                  <Input
+                    type={showKeys.binance ? "text" : "password"}
+                    placeholder="Enter Binance API secret"
+                    value={apiKeys.binance_api_secret}
+                    onChange={(e) => setApiKeys({ ...apiKeys, binance_api_secret: e.target.value })}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Get keys from binance.com/en/my/settings/api-management</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Database className="w-4 h-4 text-primary" />
+                  Coinbase
+                </CardTitle>
+                <CardDescription>US-based regulated exchange</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    API Key
+                    {apiKeys.coinbase_api_key && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showKeys.coinbase ? "text" : "password"}
+                      placeholder="Enter Coinbase API key"
+                      value={apiKeys.coinbase_api_key}
+                      onChange={(e) => setApiKeys({ ...apiKeys, coinbase_api_key: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('coinbase')}>
+                      {showKeys.coinbase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">API Secret</Label>
+                  <Input
+                    type={showKeys.coinbase ? "text" : "password"}
+                    placeholder="Enter Coinbase API secret"
+                    value={apiKeys.coinbase_api_secret}
+                    onChange={(e) => setApiKeys({ ...apiKeys, coinbase_api_secret: e.target.value })}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Get keys from coinbase.com/settings/api</p>
+              </CardContent>
+            </Card>
+
+            {/* KuCoin & Kraken */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Database className="w-4 h-4 text-primary" />
+                  KuCoin
+                </CardTitle>
+                <CardDescription>Popular altcoin exchange</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    API Key
+                    {apiKeys.kucoin_api_key && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showKeys.kucoin ? "text" : "password"}
+                      placeholder="Enter KuCoin API key"
+                      value={apiKeys.kucoin_api_key}
+                      onChange={(e) => setApiKeys({ ...apiKeys, kucoin_api_key: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('kucoin')}>
+                      {showKeys.kucoin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">API Secret</Label>
+                  <Input
+                    type={showKeys.kucoin ? "text" : "password"}
+                    placeholder="Enter KuCoin API secret"
+                    value={apiKeys.kucoin_api_secret}
+                    onChange={(e) => setApiKeys({ ...apiKeys, kucoin_api_secret: e.target.value })}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Passphrase</Label>
+                  <Input
+                    type={showKeys.kucoin ? "text" : "password"}
+                    placeholder="Enter KuCoin passphrase"
+                    value={apiKeys.kucoin_passphrase}
+                    onChange={(e) => setApiKeys({ ...apiKeys, kucoin_passphrase: e.target.value })}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Database className="w-4 h-4 text-primary" />
+                  Kraken
+                </CardTitle>
+                <CardDescription>Established secure exchange</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    API Key
+                    {apiKeys.kraken_api_key && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showKeys.kraken ? "text" : "password"}
+                      placeholder="Enter Kraken API key"
+                      value={apiKeys.kraken_api_key}
+                      onChange={(e) => setApiKeys({ ...apiKeys, kraken_api_key: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('kraken')}>
+                      {showKeys.kraken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">API Secret</Label>
+                  <Input
+                    type={showKeys.kraken ? "text" : "password"}
+                    placeholder="Enter Kraken API secret"
+                    value={apiKeys.kraken_api_secret}
+                    onChange={(e) => setApiKeys({ ...apiKeys, kraken_api_secret: e.target.value })}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Bybit & OKX */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Database className="w-4 h-4 text-primary" />
+                  Bybit
+                </CardTitle>
+                <CardDescription>Derivatives & spot trading</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    API Key
+                    {apiKeys.bybit_api_key && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showKeys.bybit ? "text" : "password"}
+                      placeholder="Enter Bybit API key"
+                      value={apiKeys.bybit_api_key}
+                      onChange={(e) => setApiKeys({ ...apiKeys, bybit_api_key: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('bybit')}>
+                      {showKeys.bybit ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">API Secret</Label>
+                  <Input
+                    type={showKeys.bybit ? "text" : "password"}
+                    placeholder="Enter Bybit API secret"
+                    value={apiKeys.bybit_api_secret}
+                    onChange={(e) => setApiKeys({ ...apiKeys, bybit_api_secret: e.target.value })}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Database className="w-4 h-4 text-primary" />
+                  OKX
+                </CardTitle>
+                <CardDescription>Global crypto exchange</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    API Key
+                    {apiKeys.okx_api_key && <CheckCircle className="w-3 h-3 text-success" />}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type={showKeys.okx ? "text" : "password"}
+                      placeholder="Enter OKX API key"
+                      value={apiKeys.okx_api_key}
+                      onChange={(e) => setApiKeys({ ...apiKeys, okx_api_key: e.target.value })}
+                      className="bg-secondary border-border"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => toggleKeyVisibility('okx')}>
+                      {showKeys.okx ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">API Secret</Label>
+                  <Input
+                    type={showKeys.okx ? "text" : "password"}
+                    placeholder="Enter OKX API secret"
+                    value={apiKeys.okx_api_secret}
+                    onChange={(e) => setApiKeys({ ...apiKeys, okx_api_secret: e.target.value })}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Passphrase</Label>
+                  <Input
+                    type={showKeys.okx ? "text" : "password"}
+                    placeholder="Enter OKX passphrase"
+                    value={apiKeys.okx_passphrase}
+                    onChange={(e) => setApiKeys({ ...apiKeys, okx_passphrase: e.target.value })}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Custom APIs */}
+            <Card className="bg-card border-border lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="font-mono text-base flex items-center gap-2">
+                  <Key className="w-4 h-4 text-primary" />
+                  Custom APIs
+                </CardTitle>
+                <CardDescription>Add your own custom API integrations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[1, 2, 3].map((num) => (
+                    <div key={num} className="p-4 bg-secondary/30 rounded-lg border border-border space-y-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs">Custom API {num} - Name</Label>
+                        <Input
+                          placeholder="API Name"
+                          value={apiKeys[`custom_api_${num}_name`]}
+                          onChange={(e) => setApiKeys({ ...apiKeys, [`custom_api_${num}_name`]: e.target.value })}
+                          className="bg-secondary border-border"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Base URL</Label>
+                        <Input
+                          placeholder="https://api.example.com"
+                          value={apiKeys[`custom_api_${num}_url`]}
+                          onChange={(e) => setApiKeys({ ...apiKeys, [`custom_api_${num}_url`]: e.target.value })}
+                          className="bg-secondary border-border"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">API Key</Label>
+                        <Input
+                          type="password"
+                          placeholder="Enter API key"
+                          value={apiKeys[`custom_api_${num}_key`]}
+                          onChange={(e) => setApiKeys({ ...apiKeys, [`custom_api_${num}_key`]: e.target.value })}
+                          className="bg-secondary border-border"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Exchange Status Summary */}
+            <Card className="bg-card border-border lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="font-mono text-base">Exchange Connection Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  {[
+                    { name: "Binance", key: "binance_api_key" },
+                    { name: "Coinbase", key: "coinbase_api_key" },
+                    { name: "KuCoin", key: "kucoin_api_key" },
+                    { name: "Kraken", key: "kraken_api_key" },
+                    { name: "Bybit", key: "bybit_api_key" },
+                    { name: "OKX", key: "okx_api_key" }
+                  ].map((exchange) => (
+                    <div key={exchange.name} className={`p-3 rounded-lg text-center ${apiKeys[exchange.key] ? 'bg-success/20 border border-success/50' : 'bg-secondary/30 border border-border'}`}>
+                      <p className="font-mono text-sm">{exchange.name}</p>
+                      {apiKeys[exchange.key] ? (
+                        <CheckCircle className="w-4 h-4 mx-auto mt-1 text-success" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 mx-auto mt-1 text-muted-foreground" />
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {apiKeys[exchange.key] ? "Configured" : "Not set"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-4 text-center">
+                  Configure exchange APIs to enable real-time data and trading features
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         {/* ==================== LLM MODELS TAB ==================== */}
         <TabsContent value="llm" className="space-y-6">
