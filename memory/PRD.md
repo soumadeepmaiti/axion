@@ -36,6 +36,17 @@ User wants two training modes:
 
 ## What's Been Implemented (Jan 30, 2026)
 
+### LLM Multi-Model Integration (Jan 31, 2026)
+- ✅ **6 LLM Providers Supported:** OpenAI, Claude, Gemini, DeepSeek, Grok, Kimi
+- ✅ **Backend LLM Service:** `/app/backend/services/llm_service.py` with unified API
+- ✅ **3 LLM Features:**
+  - **Sentiment Analysis** - LLM analyzes news → sentiment score as ML feature
+  - **Ensemble Voting** - Multiple LLMs vote BUY/SELL/HOLD with consensus
+  - **Chat Advisor** - Direct chat interface for market questions
+- ✅ **AI Advisor Page:** New `/advisor` route with Chat + Ensemble Signal tabs
+- ✅ **Settings LLM Tab:** Configure all 6 LLM API keys with status indicators
+- ✅ Added API endpoints: GET/POST /api/llm/chat, /api/llm/signal, /api/llm/sentiment, /api/llm/providers
+
 ### Settings Page Overhaul (Jan 31, 2026)
 - ✅ **API Keys Management:** CryptoPanic, Twitter, Reddit, Glassnode, Alpha Vantage
 - ✅ **Trading Settings:** Stop-loss, take-profit, position size, risk per trade, trailing stop
