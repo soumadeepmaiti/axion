@@ -635,12 +635,57 @@ class AdvancedDataPipeline:
             primary_df = processed_data.get(timeframe, pd.DataFrame())
             
         else:
-            # Single timeframe
-            limit = self.TIMEFRAME_LIMITS.get(timeframe, 1000)
+            # Single timeframe - calculate proper limit based on date range
+            default_limit = self.TIMEFRAME_LIMITS.get(timeframe, 1000)
+            
+            # Calculate limit based on date range if provided
+            if start_date and end_date:
+                # Calculate number of candles between start and end date
+                timeframe_minutes = {
+                    '1m': 1, '5m': 5, '15m': 15, '30m': 30,
+                    '1h': 60, '2h': 120, '4h': 240,
+                    '1d': 1440, '1w': 10080
+                }
+                minutes_per_candle = timeframe_minutes.get(timeframe, 60)
+                
+                # Parse dates if they're strings
+                if isinstance(start_date, str):
+                    start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                if isinstance(end_date, str):
+                    end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                
+                time_diff = end_date - start_date
+                calculated_limit = int(time_diff.total_seconds() / 60 / minutes_per_candle) + 1
+                limit = min(calculated_limit, 5000)  # Cap at 5000 candles
+                logger.info(f"Date range: {start_date} to {end_date}, calculated {calculated_limit} candles, using {limit}")
+            elif start_date:
+                # If only start date, fetch from start to now
+                limit = default_limit
+                logger.info(f"Fetching {limit} candles from {start_date}")
+            else:
+                limit = default_limit
+                logger.info(f"No date range specified, fetching last {limit} candles")
+            
             df = await self.fetch_ohlcv(symbol, timeframe, limit, start_date)
             
+            # Apply end date filter
             if not df.empty and end_date:
+                if isinstance(end_date, str):
+                    end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                # Make end_date timezone aware if df.index is timezone aware
+                if df.index.tz is not None and end_date.tzinfo is None:
+                    end_date = end_date.replace(tzinfo=df.index.tz)
                 df = df[df.index <= end_date]
+                logger.info(f"After end_date filter: {len(df)} candles")
+            
+            # Apply start date filter (in case fetch_ohlcv returned earlier data)
+            if not df.empty and start_date:
+                if isinstance(start_date, str):
+                    start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                if df.index.tz is not None and start_date.tzinfo is None:
+                    start_date = start_date.replace(tzinfo=df.index.tz)
+                df = df[df.index >= start_date]
+                logger.info(f"After start_date filter: {len(df)} candles")
             
             # Apply all feature engineering
             df = self.calculate_technical_indicators(df)
