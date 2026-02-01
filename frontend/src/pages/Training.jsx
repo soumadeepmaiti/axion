@@ -264,6 +264,9 @@ const Training = () => {
     
     setLoading(true);
     try {
+      // Set the exchange before training
+      await API.post(`/exchange/set-active?exchange=${selectedExchange}`);
+      
       const config = {
         symbol,
         epochs,
@@ -272,6 +275,7 @@ const Training = () => {
         end_date: endDate ? endDate.toISOString() : null,
         timeframe,
         mode,
+        exchange: selectedExchange,  // Pass exchange to training
         network_type: isMultiModel ? 'multi_model' : networkType,
         strategies: selectedStrategies,
         num_lstm_layers: numLstmLayers,
