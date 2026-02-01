@@ -37,13 +37,140 @@ class AdvancedDataPipeline:
     }
     
     def __init__(self):
-        self.exchange = ccxt.binanceus({
-            'enableRateLimit': True,
-            'options': {'defaultType': 'spot'}
-        })
+        self.exchanges = {}
+        self.active_exchange_name = 'binance'
+        self._init_default_exchange()
         self.scalers = {}
         self.data_cache = {}
         self.regime_model = None
+    
+    def _init_default_exchange(self):
+        """Initialize default exchange (Binance)"""
+        self.exchanges['binance'] = ccxt.binanceus({
+            'enableRateLimit': True,
+            'options': {'defaultType': 'spot'}
+        })
+        self.exchange = self.exchanges['binance']
+    
+    def configure_exchange(self, exchange_name: str, api_key: str = None, 
+                          api_secret: str = None, passphrase: str = None):
+        """Configure an exchange with API credentials"""
+        exchange_configs = {
+            'binance': {
+                'class': ccxt.binanceus,
+                'options': {'defaultType': 'spot'}
+            },
+            'okx': {
+                'class': ccxt.okx,
+                'options': {'defaultType': 'spot'}
+            },
+            'kucoin': {
+                'class': ccxt.kucoin,
+                'options': {'defaultType': 'spot'}
+            },
+            'bybit': {
+                'class': ccxt.bybit,
+                'options': {'defaultType': 'spot'}
+            },
+            'kraken': {
+                'class': ccxt.kraken,
+                'options': {}
+            },
+            'coinbase': {
+                'class': ccxt.coinbase,
+                'options': {}
+            }
+        }
+        
+        if exchange_name not in exchange_configs:
+            logger.warning(f"Unknown exchange: {exchange_name}")
+            return False
+        
+        config = exchange_configs[exchange_name]
+        
+        try:
+            exchange_params = {
+                'enableRateLimit': True,
+                'options': config['options']
+            }
+            
+            if api_key and api_secret:
+                exchange_params['apiKey'] = api_key
+                exchange_params['secret'] = api_secret
+                
+                # OKX and KuCoin require passphrase
+                if passphrase and exchange_name in ['okx', 'kucoin']:
+                    exchange_params['password'] = passphrase
+            
+            self.exchanges[exchange_name] = config['class'](exchange_params)
+            logger.info(f"Configured exchange: {exchange_name} (authenticated: {bool(api_key)})")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to configure {exchange_name}: {e}")
+            return False
+    
+    def set_active_exchange(self, exchange_name: str):
+        """Set the active exchange for data fetching"""
+        if exchange_name in self.exchanges:
+            self.active_exchange_name = exchange_name
+            self.exchange = self.exchanges[exchange_name]
+            logger.info(f"Active exchange set to: {exchange_name}")
+            return True
+        else:
+            # Try to initialize without auth
+            self.configure_exchange(exchange_name)
+            if exchange_name in self.exchanges:
+                self.active_exchange_name = exchange_name
+                self.exchange = self.exchanges[exchange_name]
+                return True
+        return False
+    
+    def get_active_exchange(self) -> str:
+        """Get the currently active exchange name"""
+        return self.active_exchange_name
+    
+    async def test_exchange_connection(self, exchange_name: str = None) -> Dict:
+        """Test connection to an exchange"""
+        exchange_name = exchange_name or self.active_exchange_name
+        
+        if exchange_name not in self.exchanges:
+            return {'success': False, 'error': f'Exchange {exchange_name} not configured'}
+        
+        try:
+            exchange = self.exchanges[exchange_name]
+            
+            # Try to fetch ticker
+            ticker = await asyncio.to_thread(exchange.fetch_ticker, 'BTC/USDT')
+            
+            # Check if authenticated
+            is_authenticated = bool(exchange.apiKey and exchange.secret)
+            
+            # Try to fetch balance if authenticated
+            balance = None
+            if is_authenticated:
+                try:
+                    balance = await asyncio.to_thread(exchange.fetch_balance)
+                    balance = {k: v for k, v in balance.get('total', {}).items() if v and v > 0}
+                except Exception as e:
+                    logger.warning(f"Could not fetch balance: {e}")
+            
+            return {
+                'success': True,
+                'exchange': exchange_name,
+                'authenticated': is_authenticated,
+                'ticker': {
+                    'symbol': 'BTC/USDT',
+                    'last': ticker.get('last'),
+                    'bid': ticker.get('bid'),
+                    'ask': ticker.get('ask')
+                },
+                'balance': balance
+            }
+            
+        except Exception as e:
+            logger.error(f"Exchange connection test failed: {e}")
+            return {'success': False, 'exchange': exchange_name, 'error': str(e)}
         
     async def fetch_ohlcv(self, symbol: str, timeframe: str, limit: int = 1000, 
                          since: Optional[datetime] = None) -> pd.DataFrame:
