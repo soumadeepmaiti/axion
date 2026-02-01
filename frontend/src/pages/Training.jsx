@@ -488,27 +488,58 @@ const Training = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs">Date Range</Label>
+                  <Label className="text-xs">Date Range (Historical Data)</Label>
                   <div className="grid grid-cols-2 gap-2">
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button variant="outline" size="sm" className="w-full bg-secondary border-border text-xs justify-start" disabled={isTraining}>
                           <CalendarIcon className="mr-1 h-3 w-3" />
-                          {startDate ? format(startDate, "MMM dd") : "Start"}
+                          {startDate ? format(startDate, "yyyy-MM-dd") : "Start Date"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} /></PopoverContent>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar 
+                          mode="single" 
+                          selected={startDate} 
+                          onSelect={setStartDate}
+                          defaultMonth={startDate || new Date(2020, 0, 1)}
+                          fromYear={2017}
+                          toYear={new Date().getFullYear()}
+                          captionLayout="dropdown-buttons"
+                        />
+                      </PopoverContent>
                     </Popover>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button variant="outline" size="sm" className="w-full bg-secondary border-border text-xs justify-start" disabled={isTraining}>
                           <CalendarIcon className="mr-1 h-3 w-3" />
-                          {endDate ? format(endDate, "MMM dd") : "End"}
+                          {endDate ? format(endDate, "yyyy-MM-dd") : "End Date"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} /></PopoverContent>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar 
+                          mode="single" 
+                          selected={endDate} 
+                          onSelect={setEndDate}
+                          defaultMonth={endDate || new Date()}
+                          fromYear={2017}
+                          toYear={new Date().getFullYear()}
+                          captionLayout="dropdown-buttons"
+                        />
+                      </PopoverContent>
                     </Popover>
                   </div>
+                  {startDate && endDate && (
+                    <div className="text-[10px] text-muted-foreground bg-secondary/50 rounded p-2">
+                      <span className="text-primary font-mono">
+                        {Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))} days
+                      </span>
+                      {' '}of historical data selected
+                      {Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) > 365 * 3 && (
+                        <span className="text-yellow-500 ml-1">• Large dataset</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
