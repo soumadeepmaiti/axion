@@ -751,24 +751,14 @@ class AdvancedDataPipeline:
                 df = await self.fetch_ohlcv(symbol, timeframe, default_limit)
                 logger.info(f"No date range specified, fetched {len(df)} recent candles")
             
-            # Apply end date filter
-            if not df.empty and end_date:
-                if isinstance(end_date, str):
-                    end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-                # Make end_date timezone aware if df.index is timezone aware
-                if df.index.tz is not None and end_date.tzinfo is None:
-                    end_date = end_date.replace(tzinfo=df.index.tz)
-                df = df[df.index <= end_date]
-                logger.info(f"After end_date filter: {len(df)} candles")
-            
-            # Apply start date filter (in case fetch_ohlcv returned earlier data)
-            if not df.empty and start_date:
-                if isinstance(start_date, str):
-                    start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-                if df.index.tz is not None and start_date.tzinfo is None:
-                    start_date = start_date.replace(tzinfo=df.index.tz)
-                df = df[df.index >= start_date]
-                logger.info(f"After start_date filter: {len(df)} candles")
+            if df.empty:
+                logger.warning(f"No data returned for {symbol} {timeframe}")
+                return {
+                    'features': np.array([]),
+                    'labels': np.array([]),
+                    'feature_names': [],
+                    'data_info': {'error': 'No data available for the specified date range'}
+                }
             
             # Apply all feature engineering
             df = self.calculate_technical_indicators(df)
