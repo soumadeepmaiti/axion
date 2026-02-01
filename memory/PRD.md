@@ -45,6 +45,21 @@ User wants two training modes:
 
 ## Latest Updates (Feb 1, 2026)
 
+### Arbitrary Historical Date Range Fetching (Feb 1, 2026)
+- ✅ **Feature Implemented:** Users can now fetch historical data from any date (e.g., 2017 to today)
+- ✅ **Chunked Fetching:** `advanced_data_pipeline.py` uses paginated API calls to avoid timeouts
+- ✅ **Helper Method:** `_get_timeframe_ms()` converts timeframe strings to milliseconds
+- ✅ **API Endpoints:**
+  - `POST /api/training/data-preview` - Returns estimated candles for a date range
+- ✅ **UI Enhancements:**
+  - Calendar now shows Year dropdown (2017-current year)
+  - Month dropdown for quick navigation
+  - Date format: YYYY-MM-DD
+  - Date range info shows "X days of historical data"
+  - Large dataset warning for multi-year ranges
+- ✅ **Tested:** 100% backend tests passed (10/10), all frontend tests passed
+- ✅ **Verified:** Successfully trained on 3 years of daily data (1096 samples)
+
 ### Multi-Exchange Support with OKX Integration
 - ✅ **6 Exchanges Supported:** Binance, OKX, KuCoin, Bybit, Kraken, Coinbase
 - ✅ **API Endpoints Added:**
