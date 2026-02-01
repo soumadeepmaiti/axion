@@ -139,8 +139,9 @@ class TestAdvancedTrainingWithDateRange:
         
         # Verify status structure
         assert "is_training" in data
-        assert "progress" in data
-        print(f"Training status: is_training={data['is_training']}, progress={data['progress']}")
+        assert "current_epoch" in data
+        assert "total_epochs" in data
+        print(f"Training status: is_training={data['is_training']}, epoch={data['current_epoch']}/{data['total_epochs']}")
     
     def test_advanced_training_start_with_date_range(self):
         """Test starting advanced training with a date range (short test)"""
