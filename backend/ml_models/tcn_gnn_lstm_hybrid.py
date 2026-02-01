@@ -333,9 +333,10 @@ class LSTMAggregator(layers.Layer):
     
     def build(self, input_shape):
         for i in range(self.num_layers):
+            return_seq = (i < self.num_layers - 1)
             lstm = LSTM(
                 self.units,
-                return_sequences=(i < self.num_layers - 1),
+                return_sequences=return_seq,
                 dropout=self.dropout_rate,
                 recurrent_dropout=self.dropout_rate / 2,
                 kernel_regularizer=regularizers.l2(1e-4)
