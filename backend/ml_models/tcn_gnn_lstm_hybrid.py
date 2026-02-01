@@ -323,8 +323,9 @@ class LSTMAggregator(layers.Layer):
     
     def __init__(self, units=128, num_layers=2, dropout_rate=0.3, bidirectional=True, **kwargs):
         super().__init__(**kwargs)
-        self.units = int(units)
-        self.num_layers = int(num_layers)
+        # Handle if units comes as list
+        self.units = int(units[0]) if isinstance(units, (list, tuple)) else int(units)
+        self.num_layers = int(num_layers[0]) if isinstance(num_layers, (list, tuple)) else int(num_layers)
         self.dropout_rate = float(dropout_rate)
         self.bidirectional = bool(bidirectional)
         self.lstm_layers = []
@@ -336,9 +337,8 @@ class LSTMAggregator(layers.Layer):
         if self._is_built:
             return
         
-        num_layers = int(self.num_layers)
-        for i in range(num_layers):
-            return_seq = bool(i < num_layers - 1)
+        for i in range(self.num_layers):
+            return_seq = bool(i < self.num_layers - 1)
             lstm = LSTM(
                 self.units,
                 return_sequences=return_seq,
