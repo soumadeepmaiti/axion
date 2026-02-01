@@ -11,7 +11,7 @@ User wants two training modes:
 - **Mathematical Modeling Mode**: Apply pre-defined quant strategies (Renaissance-style)
 
 ## User Choices
-- Data Source: CCXT Binance US
+- Data Source: CCXT (Multi-Exchange Support: Binance, OKX, KuCoin, Bybit, Kraken, Coinbase)
 - Trading Pairs: BTC/USDT, ETH/USDT
 - Model: Fully trainable with user-configurable network depth
 - Sentiment: FinBERT + CryptoPanic (MOCKED - invalid API key)
@@ -22,19 +22,45 @@ User wants two training modes:
 /app/
 ├── backend/
 │   ├── server.py             # FastAPI endpoints
-│   ├── ml_models/hybrid_model.py
+│   ├── settings.json         # User settings storage
+│   ├── ml_models/
+│   │   ├── hybrid_model.py
+│   │   ├── advanced_models.py
+│   │   ├── rl_models.py            # NEW: DQN, PPO RL agents
+│   │   └── multi_model_ensemble.py # NEW: Multi-model training
 │   └── services/
-│       ├── data_pipeline.py    # CCXT data fetching
-│       ├── sentiment_service.py # FinBERT + CryptoPanic (mocked)
-│       └── training_service.py  # Dual-mode training (Pure ML + Math)
+│       ├── advanced_data_pipeline.py  # Multi-exchange support
+│       ├── sentiment_service.py       # FinBERT (mocked)
+│       ├── advanced_training_service.py
+│       ├── llm_service.py             # OpenAI, Claude, Gemini
+│       └── backtesting_service.py
 └── frontend/
     └── src/pages/
         ├── Dashboard.jsx   # Price charts, predictions
-        ├── Training.jsx    # Network config, training modes
-        └── Predictions.jsx # Prediction history
+        ├── Training.jsx    # Network config, multi-model, RL
+        ├── Advisor.jsx     # LLM chat interface
+        ├── Backtesting.jsx # Strategy backtesting
+        └── Settings.jsx    # API keys, exchanges
 ```
 
-## What's Been Implemented (Jan 30, 2026)
+## Latest Updates (Feb 1, 2026)
+
+### Multi-Exchange Support with OKX Integration
+- ✅ **6 Exchanges Supported:** Binance, OKX, KuCoin, Bybit, Kraken, Coinbase
+- ✅ **API Endpoints Added:**
+  - `POST /api/exchange/configure` - Configure exchange with credentials
+  - `POST /api/exchange/test` - Test exchange connection
+  - `POST /api/exchange/set-active` - Switch active exchange
+  - `GET /api/exchange/status` - Get all exchange statuses
+- ✅ **OKX Tested:** Successfully fetching BTC/USDT ticker
+- ✅ **Settings UI:** Already has OKX fields (api_key, secret, passphrase)
+
+### Dashboard Predictions Fixed
+- ✅ **Auto-loads best saved model** on server startup (60.26% accuracy LSTM)
+- ✅ **Uses advanced_data_pipeline** for consistent features
+- ✅ **Dynamic predictions** - no more static 50% probability
+
+## What's Been Implemented (Jan 30-31, 2026)
 
 ### Settings Page Reorganization (Jan 31, 2026)
 - ✅ Merged Exchanges into "Data & Exchanges" tab with sub-tabs:
