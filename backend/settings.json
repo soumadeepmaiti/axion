@@ -1,0 +1,39 @@
+{
+  "api_keys": {
+    "binance_api_key": "",
+    "binance_api_secret": "",
+    "okx_api_key": "",
+    "okx_api_secret": "",
+    "okx_passphrase": "",
+    "coinbase_api_key": "",
+    "coinbase_api_secret": "",
+    "kucoin_api_key": "",
+    "kucoin_api_secret": "",
+    "kucoin_passphrase": "",
+    "kraken_api_key": "",
+    "kraken_api_secret": "",
+    "bybit_api_key": "",
+    "bybit_api_secret": "",
+    "cryptopanic": "",
+    "glassnode": "",
+    "alphavantage": "",
+    "openai": "",
+    "claude": "",
+    "gemini": ""
+  },
+  "trading": {
+    "default_stop_loss": 2,
+    "default_take_profit": 4,
+    "default_position_size": 10,
+    "max_daily_trades": 10,
+    "max_open_positions": 3,
+    "risk_per_trade": 2,
+    "use_trailing_stop": false,
+    "trailing_stop_pct": 1
+  },
+  "preferences": {
+    "preferred_exchange": "binance",
+    "default_symbol": "BTC/USDT",
+    "default_timeframe": "1h"
+  }
+}
