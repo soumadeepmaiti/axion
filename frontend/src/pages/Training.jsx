@@ -73,6 +73,7 @@ const NETWORK_TYPES = [
   { id: "gru", name: "GRU", description: "Gated Recurrent Unit - Faster training", icon: "⚡" },
   { id: "transformer", name: "Transformer", description: "Multi-head Attention - State of art", icon: "🔮" },
   { id: "cnn_lstm", name: "CNN + LSTM", description: "Convolutional + Recurrent hybrid", icon: "🔗" },
+  { id: "tcn_gnn_lstm", name: "TCN-GNN-LSTM", description: "Multi-Channel Fusion - Best accuracy", icon: "🌐" },
   { id: "ensemble", name: "Ensemble", description: "LSTM + XGBoost + RandomForest", icon: "🎯" },
   { id: "tft", name: "TFT", description: "Temporal Fusion Transformer - Google's best", icon: "🌟" },
   { id: "multi_task", name: "Multi-Task", description: "Predict direction + volatility + magnitude", icon: "📊" },
