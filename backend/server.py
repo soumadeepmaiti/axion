@@ -739,6 +739,118 @@ async def save_settings(settings: SettingsModel):
         logger.error(f"Error saving settings: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============== Exchange Management Endpoints ==============
+
+class ExchangeConfigRequest(BaseModel):
+    exchange: str
+    api_key: Optional[str] = None
+    api_secret: Optional[str] = None
+    passphrase: Optional[str] = None
+
+@api_router.post("/exchange/configure")
+async def configure_exchange(request: ExchangeConfigRequest):
+    """Configure an exchange with API credentials"""
+    try:
+        success = advanced_data_pipeline.configure_exchange(
+            request.exchange,
+            request.api_key,
+            request.api_secret,
+            request.passphrase
+        )
+        
+        if success:
+            # Save to database
+            await db.settings.update_one(
+                {"type": "exchange_config"},
+                {"$set": {
+                    f"exchanges.{request.exchange}": {
+                        "configured": True,
+                        "authenticated": bool(request.api_key),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }
+                }},
+                upsert=True
+            )
+            
+            return {
+                "status": "success",
+                "exchange": request.exchange,
+                "authenticated": bool(request.api_key),
+                "message": f"{request.exchange.upper()} configured successfully"
+            }
+        else:
+            raise HTTPException(status_code=400, detail=f"Failed to configure {request.exchange}")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Exchange configuration error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/exchange/test")
+async def test_exchange_connection(request: ExchangeConfigRequest = None):
+    """Test connection to an exchange"""
+    try:
+        exchange_name = request.exchange if request else advanced_data_pipeline.get_active_exchange()
+        
+        # Configure first if credentials provided
+        if request and request.api_key:
+            advanced_data_pipeline.configure_exchange(
+                request.exchange,
+                request.api_key,
+                request.api_secret,
+                request.passphrase
+            )
+        
+        result = await advanced_data_pipeline.test_exchange_connection(exchange_name)
+        return result
+        
+    except Exception as e:
+        logger.error(f"Exchange test error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/exchange/set-active")
+async def set_active_exchange(exchange: str):
+    """Set the active exchange for data fetching"""
+    try:
+        success = advanced_data_pipeline.set_active_exchange(exchange)
+        if success:
+            return {
+                "status": "success",
+                "active_exchange": exchange,
+                "message": f"Now using {exchange.upper()} for data"
+            }
+        else:
+            raise HTTPException(status_code=400, detail=f"Exchange {exchange} not available")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Set active exchange error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/exchange/status")
+async def get_exchange_status():
+    """Get status of all configured exchanges"""
+    try:
+        active = advanced_data_pipeline.get_active_exchange()
+        exchanges_status = {}
+        
+        for name, exchange in advanced_data_pipeline.exchanges.items():
+            exchanges_status[name] = {
+                "configured": True,
+                "authenticated": bool(exchange.apiKey and exchange.secret),
+                "active": name == active
+            }
+        
+        return {
+            "active_exchange": active,
+            "exchanges": exchanges_status,
+            "available_exchanges": ["binance", "okx", "kucoin", "bybit", "kraken", "coinbase"]
+        }
+    except Exception as e:
+        logger.error(f"Exchange status error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============== LLM Endpoints ==============
 
 class LLMChatRequest(BaseModel):
