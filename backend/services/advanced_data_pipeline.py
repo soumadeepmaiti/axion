@@ -310,15 +310,16 @@ class AdvancedDataPipeline:
     async def fetch_multi_timeframe_data(self, symbol: str, 
                                          start_date: Optional[datetime] = None,
                                          end_date: Optional[datetime] = None) -> Dict[str, pd.DataFrame]:
-        """Fetch data for all timeframes"""
+        """Fetch data for all timeframes with full date range support"""
         data = {}
         
         for tf in self.TIMEFRAMES:
-            limit = self.TIMEFRAME_LIMITS[tf]
-            df = await self.fetch_ohlcv(symbol, tf, limit, start_date)
-            
-            if not df.empty and end_date:
-                df = df[df.index <= end_date]
+            # Use the new date-range based fetching
+            if start_date and end_date:
+                df = await self.fetch_ohlcv(symbol, tf, limit=100000, since=start_date, until=end_date)
+            else:
+                limit = self.TIMEFRAME_LIMITS[tf]
+                df = await self.fetch_ohlcv(symbol, tf, limit, start_date)
             
             data[tf] = df
             logger.info(f"Fetched {len(df)} rows for {symbol} {tf}")
