@@ -173,48 +173,139 @@ class AdvancedDataPipeline:
             return {'success': False, 'exchange': exchange_name, 'error': str(e)}
         
     async def fetch_ohlcv(self, symbol: str, timeframe: str, limit: int = 1000, 
-                         since: Optional[datetime] = None) -> pd.DataFrame:
-        """Fetch OHLCV data with optional start date"""
+                         since: Optional[datetime] = None,
+                         until: Optional[datetime] = None) -> pd.DataFrame:
+        """
+        Fetch OHLCV data with support for arbitrary date ranges.
+        
+        For large date ranges (e.g., 2015 to today), this method will automatically
+        fetch data in chunks to avoid API timeouts and rate limits.
+        
+        Args:
+            symbol: Trading pair (e.g., 'BTC/USDT')
+            timeframe: Candle timeframe (e.g., '1h', '1d')
+            limit: Maximum number of candles (used if no date range specified)
+            since: Start datetime for data fetching
+            until: End datetime for data fetching (defaults to now)
+        """
         try:
+            # Convert datetime to milliseconds
             since_ms = int(since.timestamp() * 1000) if since else None
+            until_ms = int(until.timestamp() * 1000) if until else int(datetime.now(timezone.utc).timestamp() * 1000)
             
-            # Fetch data in chunks for large requests
+            # Calculate timeframe in milliseconds for chunking
+            timeframe_ms = self._get_timeframe_ms(timeframe)
+            
+            # If we have a date range, calculate how many candles we need
+            if since_ms and until_ms:
+                total_candles_needed = int((until_ms - since_ms) / timeframe_ms) + 1
+                logger.info(f"Fetching {symbol} {timeframe} from {since} to {until} (~{total_candles_needed} candles)")
+            else:
+                total_candles_needed = limit
+            
+            # Fetch data in chunks (most exchanges limit to 1000-1500 candles per request)
             all_data = []
             current_since = since_ms
-            remaining = limit
+            max_candles_per_request = 1000
+            total_fetched = 0
             
-            while remaining > 0:
-                fetch_limit = min(remaining, 1000)
-                data = await asyncio.to_thread(
-                    self.exchange.fetch_ohlcv,
-                    symbol, timeframe, current_since, fetch_limit
-                )
+            while True:
+                # Calculate how many candles to fetch in this request
+                fetch_limit = min(max_candles_per_request, total_candles_needed - total_fetched) if since_ms else min(max_candles_per_request, limit - total_fetched)
+                
+                if fetch_limit <= 0:
+                    break
+                
+                try:
+                    data = await asyncio.to_thread(
+                        self.exchange.fetch_ohlcv,
+                        symbol, timeframe, current_since, fetch_limit
+                    )
+                except Exception as fetch_error:
+                    logger.warning(f"Fetch error at {current_since}: {fetch_error}")
+                    # If we have some data, return what we have
+                    if all_data:
+                        break
+                    raise
+                
+                if not data:
+                    logger.info(f"No more data available after {total_fetched} candles")
+                    break
+                
+                # Filter out data beyond our end date
+                if until_ms:
+                    data = [d for d in data if d[0] <= until_ms]
                 
                 if not data:
                     break
-                    
-                all_data.extend(data)
-                remaining -= len(data)
                 
-                if len(data) < fetch_limit:
+                all_data.extend(data)
+                total_fetched += len(data)
+                
+                # Log progress for large fetches
+                if total_candles_needed > 1000 and total_fetched % 5000 == 0:
+                    progress = (total_fetched / total_candles_needed) * 100 if total_candles_needed > 0 else 0
+                    logger.info(f"Fetch progress: {total_fetched}/{total_candles_needed} candles ({progress:.1f}%)")
+                
+                # Check if we've reached the end date
+                if until_ms and data[-1][0] >= until_ms:
+                    logger.info(f"Reached end date after {total_fetched} candles")
                     break
-                    
+                
+                # Check if we got less than requested (end of available data)
+                if len(data) < fetch_limit:
+                    logger.info(f"Reached end of available data after {total_fetched} candles")
+                    break
+                
+                # Check if we've hit our limit
+                if not since_ms and total_fetched >= limit:
+                    break
+                
+                # Move to next chunk - start from the last candle's timestamp + 1ms
                 current_since = data[-1][0] + 1
-                await asyncio.sleep(0.1)  # Rate limiting
+                
+                # Rate limiting - be nice to the exchange API
+                await asyncio.sleep(0.1)
             
             if not all_data:
+                logger.warning(f"No data fetched for {symbol} {timeframe}")
                 return pd.DataFrame()
             
+            # Convert to DataFrame
             df = pd.DataFrame(all_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
             df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms', utc=True)
             df.set_index('timestamp', inplace=True)
             df = df[~df.index.duplicated(keep='first')]
+            df = df.sort_index()  # Ensure chronological order
+            
+            logger.info(f"Successfully fetched {len(df)} candles for {symbol} {timeframe}")
             
             return df
             
         except Exception as e:
             logger.error(f"Error fetching OHLCV: {e}")
             return pd.DataFrame()
+    
+    def _get_timeframe_ms(self, timeframe: str) -> int:
+        """Convert timeframe string to milliseconds"""
+        timeframe_map = {
+            '1m': 60 * 1000,
+            '3m': 3 * 60 * 1000,
+            '5m': 5 * 60 * 1000,
+            '15m': 15 * 60 * 1000,
+            '30m': 30 * 60 * 1000,
+            '1h': 60 * 60 * 1000,
+            '2h': 2 * 60 * 60 * 1000,
+            '4h': 4 * 60 * 60 * 1000,
+            '6h': 6 * 60 * 60 * 1000,
+            '8h': 8 * 60 * 60 * 1000,
+            '12h': 12 * 60 * 60 * 1000,
+            '1d': 24 * 60 * 60 * 1000,
+            '3d': 3 * 24 * 60 * 60 * 1000,
+            '1w': 7 * 24 * 60 * 60 * 1000,
+            '1M': 30 * 24 * 60 * 60 * 1000,
+        }
+        return timeframe_map.get(timeframe, 60 * 60 * 1000)  # Default to 1h
     
     async def fetch_multi_timeframe_data(self, symbol: str, 
                                          start_date: Optional[datetime] = None,
