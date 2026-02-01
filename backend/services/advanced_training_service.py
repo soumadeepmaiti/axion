@@ -602,12 +602,16 @@ class AdvancedTrainingService:
         
         # Prepare data
         try:
+            # Use real_data_only=True by default (no mocked on-chain, sentiment)
+            real_data_only = config.get('real_data_only', True)
+            
             data = await advanced_data_pipeline.prepare_training_data(
                 symbol=symbol,
                 start_date=config.get('start_date'),
                 end_date=config.get('end_date'),
                 timeframe=config.get('timeframe', '1h'),
-                multi_timeframe=config.get('multi_timeframe', False)
+                multi_timeframe=config.get('multi_timeframe', False),
+                real_data_only=real_data_only
             )
             
             if len(data['features']) < 100:
@@ -619,6 +623,7 @@ class AdvancedTrainingService:
                 }
             
             self.status['data_info'] = data['data_info']
+            self.status['real_data_only'] = real_data_only
             
         except Exception as e:
             self.is_training = False
