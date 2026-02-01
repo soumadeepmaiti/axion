@@ -105,6 +105,10 @@ const Training = () => {
   const [epochs, setEpochs] = useState(100);
   const [batchSize, setBatchSize] = useState(32);
   
+  // Exchange selection
+  const [selectedExchange, setSelectedExchange] = useState("okx");
+  const [exchangeStatus, setExchangeStatus] = useState(null);
+  
   // Mode
   const [mode, setMode] = useState("pure_ml");
   
