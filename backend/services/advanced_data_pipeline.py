@@ -516,9 +516,11 @@ class AdvancedDataPipeline:
         
         return df
     
-    def prepare_features_for_training(self, df: pd.DataFrame) -> Tuple[np.ndarray, List[str]]:
+    def prepare_features_for_training(self, df: pd.DataFrame, real_data_only: bool = True) -> Tuple[np.ndarray, List[str]]:
         """Prepare feature matrix for training"""
-        feature_columns = [
+        
+        # REAL features - from actual OHLCV data + calculated technical indicators
+        real_feature_columns = [
             # Price ratios
             'price_sma20_ratio', 'price_sma50_ratio', 'price_sma200_ratio',
             # Momentum
@@ -539,15 +541,40 @@ class AdvancedDataPipeline:
             'garch_volatility',
             # Regime
             'regime_encoded', 'regime_strength',
+        ]
+        
+        # MOCK features - only include if not real_data_only
+        mock_feature_columns = [
             # Order book (mock)
             'bid_ask_spread', 'order_flow_imbalance', 'depth_ratio',
             # On-chain (mock)
             'active_addresses', 'exchange_flow_ratio', 'nupl', 'sopr',
-            
-            # ===== NEW ENHANCED FEATURES =====
-            # Market Microstructure
+            # Market Microstructure (mock)
             'funding_rate', 'cumulative_funding', 'funding_rate_ma', 'extreme_funding',
             'open_interest', 'oi_change_24h', 'oi_ratio', 'oi_price_divergence',
+            'liquidation_intensity', 'liquidation_imbalance', 'liquidation_ma',
+            'premium_index', 'premium_ma', 'premium_reversal', 'extreme_premium',
+            # Cross-Market (mock)
+            'dxy_correlation', 'gold_correlation', 'spx_correlation',
+            'risk_on_score', 'macro_regime', 'rate_sensitivity',
+            'funding_spread', 'exchange_premium', 'arbitrage_opportunity', 'cross_exchange_flow',
+            'sentiment_score', 'sentiment_ma', 'sentiment_momentum',
+            'fear_greed', 'social_volume', 'social_sentiment',
+            'news_sentiment', 'news_volume', 'sentiment_divergence',
+            # On-Chain Advanced (mock)
+            'mvrv_ratio', 'nvt_signal', 'realized_cap_change',
+            'stablecoin_supply_ratio', 'stablecoin_inflow', 'buying_power_index',
+            'whale_accumulation', 'exchange_whale_ratio', 'smart_money_flow',
+            'network_value_signal', 'velocity', 'dormancy_flow',
+            'puell_multiple', 'reserve_risk', 'hodl_waves_signal',
+        ]
+        
+        if real_data_only:
+            feature_columns = real_feature_columns
+            logger.info(f"Using {len(feature_columns)} REAL features only (no mocked data)")
+        else:
+            feature_columns = real_feature_columns + mock_feature_columns
+            logger.info(f"Using {len(feature_columns)} features (including mocked data)")
             'long_liquidations', 'short_liquidations', 'liquidation_ratio', 'liquidations_24h',
             'exchange_inflow', 'exchange_outflow', 'exchange_netflow',
             
