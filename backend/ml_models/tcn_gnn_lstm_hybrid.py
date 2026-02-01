@@ -323,17 +323,22 @@ class LSTMAggregator(layers.Layer):
     
     def __init__(self, units=128, num_layers=2, dropout_rate=0.3, bidirectional=True, **kwargs):
         super().__init__(**kwargs)
-        self.units = units
-        self.num_layers = num_layers
-        self.dropout_rate = dropout_rate
-        self.bidirectional = bidirectional
+        self.units = int(units)
+        self.num_layers = int(num_layers)
+        self.dropout_rate = float(dropout_rate)
+        self.bidirectional = bool(bidirectional)
         self.lstm_layers = []
         self.attention = None
         self.layernorm = None
+        self._is_built = False
     
     def build(self, input_shape):
-        for i in range(self.num_layers):
-            return_seq = (i < self.num_layers - 1)
+        if self._is_built:
+            return
+        
+        num_layers = int(self.num_layers)
+        for i in range(num_layers):
+            return_seq = bool(i < num_layers - 1)
             lstm = LSTM(
                 self.units,
                 return_sequences=return_seq,
@@ -347,6 +352,7 @@ class LSTMAggregator(layers.Layer):
         
         self.attention = MultiHeadAttention(num_heads=4, key_dim=self.units // 4)
         self.layernorm = LayerNormalization()
+        self._is_built = True
         super().build(input_shape)
     
     def call(self, inputs, training=None):
