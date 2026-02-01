@@ -199,22 +199,41 @@ class TCNEncoder(layers.Layer):
     
     def __init__(self, num_filters=64, kernel_size=3, num_blocks=4, dropout_rate=0.2, **kwargs):
         super().__init__(**kwargs)
+        self.num_filters = num_filters
+        self.kernel_size = kernel_size
+        self.num_blocks = num_blocks
+        self.dropout_rate = dropout_rate
         self.blocks = []
-        
+        self.final_conv = None
+    
+    def build(self, input_shape):
         # Create TCN blocks with exponentially increasing dilation
-        for i in range(num_blocks):
+        for i in range(self.num_blocks):
             dilation_rate = 2 ** i  # 1, 2, 4, 8, ...
             self.blocks.append(
-                TCNBlock(num_filters, kernel_size, dilation_rate, dropout_rate)
+                TCNBlock(self.num_filters, self.kernel_size, dilation_rate, self.dropout_rate)
             )
-        
-        self.final_conv = Conv1D(num_filters, 1, activation='relu')
+        self.final_conv = Conv1D(self.num_filters, 1, activation='relu')
+        super().build(input_shape)
     
     def call(self, inputs, training=None):
         x = inputs
         for block in self.blocks:
             x = block(x, training=training)
         return self.final_conv(x)
+    
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0], input_shape[1], self.num_filters)
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'num_filters': self.num_filters,
+            'kernel_size': self.kernel_size,
+            'num_blocks': self.num_blocks,
+            'dropout_rate': self.dropout_rate
+        })
+        return config
 
 
 # ==================== GNN (Graph Neural Network) ====================
