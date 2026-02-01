@@ -323,28 +323,50 @@ class LSTMAggregator(layers.Layer):
     
     def __init__(self, units=128, num_layers=2, dropout_rate=0.3, bidirectional=True, **kwargs):
         super().__init__(**kwargs)
+        self.units = units
+        self.num_layers = num_layers
+        self.dropout_rate = dropout_rate
+        self.bidirectional = bidirectional
         self.lstm_layers = []
-        
-        for i in range(num_layers):
+        self.attention = None
+        self.layernorm = None
+    
+    def build(self, input_shape):
+        for i in range(self.num_layers):
             lstm = LSTM(
-                units,
-                return_sequences=(i < num_layers - 1),
-                dropout=dropout_rate,
-                recurrent_dropout=dropout_rate / 2,
+                self.units,
+                return_sequences=(i < self.num_layers - 1),
+                dropout=self.dropout_rate,
+                recurrent_dropout=self.dropout_rate / 2,
                 kernel_regularizer=regularizers.l2(1e-4)
             )
-            if bidirectional:
+            if self.bidirectional:
                 lstm = layers.Bidirectional(lstm)
             self.lstm_layers.append(lstm)
         
-        self.attention = MultiHeadAttention(num_heads=4, key_dim=units // 4)
+        self.attention = MultiHeadAttention(num_heads=4, key_dim=self.units // 4)
         self.layernorm = LayerNormalization()
+        super().build(input_shape)
     
     def call(self, inputs, training=None):
         x = inputs
         for lstm in self.lstm_layers:
             x = lstm(x, training=training)
         return x
+    
+    def compute_output_shape(self, input_shape):
+        output_units = self.units * 2 if self.bidirectional else self.units
+        return (input_shape[0], output_units)
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'units': self.units,
+            'num_layers': self.num_layers,
+            'dropout_rate': self.dropout_rate,
+            'bidirectional': self.bidirectional
+        })
+        return config
 
 
 # ==================== SAC (Soft Actor-Critic) HEAD ====================
