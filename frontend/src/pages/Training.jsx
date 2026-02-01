@@ -192,7 +192,47 @@ const Training = () => {
     fetchHistory();
     fetchStatus();
     fetchSavedModels();
+    fetchExchangeStatus();
   }, [fetchHistory, fetchStatus, fetchSavedModels]);
+
+  // Fetch exchange status
+  const fetchExchangeStatus = useCallback(async () => {
+    try {
+      const response = await API.get('/exchange/status');
+      setExchangeStatus(response.data);
+      if (response.data?.active_exchange) {
+        setSelectedExchange(response.data.active_exchange);
+      }
+    } catch (error) {
+      console.error("Error fetching exchange status:", error);
+    }
+  }, []);
+
+  // Set active exchange
+  const handleExchangeChange = async (exchange) => {
+    try {
+      await API.post(`/exchange/set-active?exchange=${exchange}`);
+      setSelectedExchange(exchange);
+      toast.success(`Switched to ${exchange.toUpperCase()} for data`);
+      fetchExchangeStatus();
+    } catch (error) {
+      toast.error(`Failed to switch to ${exchange}`);
+    }
+  };
+
+  // Test exchange connection
+  const handleTestExchange = async () => {
+    try {
+      const response = await API.post('/exchange/test', { exchange: selectedExchange });
+      if (response.data.success) {
+        toast.success(`${selectedExchange.toUpperCase()} connected! BTC: $${response.data.ticker?.last?.toLocaleString()}`);
+      } else {
+        toast.error(`Connection failed: ${response.data.error}`);
+      }
+    } catch (error) {
+      toast.error("Connection test failed");
+    }
+  };
 
   // Real-time status polling
   useEffect(() => {
