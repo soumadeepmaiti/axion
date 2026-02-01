@@ -601,11 +601,15 @@ class AdvancedDataPipeline:
                                    start_date: Optional[datetime] = None,
                                    end_date: Optional[datetime] = None,
                                    timeframe: str = '1h',
-                                   multi_timeframe: bool = False) -> Dict:
+                                   multi_timeframe: bool = False,
+                                   real_data_only: bool = True) -> Dict:
         """
         Prepare comprehensive training data with all features
+        
+        Args:
+            real_data_only: If True, only use real OHLCV + technical indicators (no mocked data)
         """
-        logger.info(f"Preparing training data for {symbol}, timeframe={timeframe}, multi_tf={multi_timeframe}")
+        logger.info(f"Preparing training data for {symbol}, timeframe={timeframe}, real_data_only={real_data_only}")
         
         if multi_timeframe:
             # Fetch all timeframes
@@ -618,8 +622,9 @@ class AdvancedDataPipeline:
                     df = self.calculate_technical_indicators(df)
                     df = self.calculate_garch_features(df)
                     df = self.detect_market_regime(df)
-                    df = self.generate_mock_order_book_features(df)
-                    df = self.generate_mock_onchain_features(df)
+                    if not real_data_only:
+                        df = self.generate_mock_order_book_features(df)
+                        df = self.generate_mock_onchain_features(df)
                     df = self.create_labels(df)
                     processed_data[tf] = df
             
@@ -639,15 +644,17 @@ class AdvancedDataPipeline:
             df = self.calculate_garch_features(df)
             df = self.detect_market_regime(df)
             
-            # Cross-asset features
+            # Cross-asset features (real data from exchanges)
             cross_data = await self.fetch_cross_asset_data(symbol)
             df = self.calculate_cross_asset_features(df, cross_data, symbol)
             
-            df = self.generate_mock_order_book_features(df)
-            df = self.generate_mock_onchain_features(df)
-            
-            # Apply ALL enhanced features (new!)
-            df = apply_all_enhanced_features(df)
+            if not real_data_only:
+                # Only add mock features if explicitly requested
+                df = self.generate_mock_order_book_features(df)
+                df = self.generate_mock_onchain_features(df)
+                df = apply_all_enhanced_features(df)
+            else:
+                logger.info("Using REAL DATA ONLY - skipping mocked on-chain, sentiment, order book features")
             
             df = self.create_labels(df)
             
@@ -665,8 +672,8 @@ class AdvancedDataPipeline:
         # Remove rows with NaN labels
         primary_df = primary_df.dropna(subset=['label'])
         
-        # Prepare features
-        features, feature_names = self.prepare_features_for_training(primary_df)
+        # Prepare features - use real features only if specified
+        features, feature_names = self.prepare_features_for_training(primary_df, real_data_only=real_data_only)
         
         # Handle NaN in features
         features = np.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
