@@ -512,6 +512,8 @@ def build_model(network_type: str, input_shape: Tuple[int, int], config: Dict) -
         'multi_task': lambda: build_advanced_model('multi_task', input_shape, config),
         'gnn': lambda: build_advanced_model('gnn', input_shape, config),
         'multi_tf_attention': lambda: build_advanced_model('multi_tf_attention', input_shape, config),
+        # TCN-GNN-LSTM Hybrid (NEW - Multi-Channel Fusion)
+        'tcn_gnn_lstm': lambda: build_tcn_gnn_lstm_model(input_shape, config),
     }
     
     if network_type not in builders:
@@ -519,6 +521,14 @@ def build_model(network_type: str, input_shape: Tuple[int, int], config: Dict) -
         network_type = 'lstm'
     
     return builders[network_type]()
+
+
+# ==================== TCN-GNN-LSTM Hybrid ====================
+
+def build_tcn_gnn_lstm_model(input_shape: Tuple[int, int], config: Dict):
+    """Build TCN-GNN-LSTM Hybrid model"""
+    from ml_models.tcn_gnn_lstm_hybrid import build_hybrid_model
+    return build_hybrid_model(input_shape, config)
 
 
 # ==================== RL Model Support ====================
