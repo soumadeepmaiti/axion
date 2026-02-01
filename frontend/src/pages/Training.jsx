@@ -399,6 +399,49 @@ const Training = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Exchange Selector */}
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    Data Source
+                    {exchangeStatus?.exchanges?.[selectedExchange]?.authenticated && (
+                      <Badge className="bg-green-500/20 text-green-400 text-[10px]">Authenticated</Badge>
+                    )}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Select value={selectedExchange} onValueChange={handleExchangeChange} disabled={isTraining}>
+                      <SelectTrigger className="bg-secondary border-border flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="okx">
+                          <span className="flex items-center gap-2">🟢 OKX</span>
+                        </SelectItem>
+                        <SelectItem value="binance">
+                          <span className="flex items-center gap-2">🟡 Binance</span>
+                        </SelectItem>
+                        <SelectItem value="kucoin">
+                          <span className="flex items-center gap-2">🟢 KuCoin</span>
+                        </SelectItem>
+                        <SelectItem value="bybit">
+                          <span className="flex items-center gap-2">🟠 Bybit</span>
+                        </SelectItem>
+                        <SelectItem value="kraken">
+                          <span className="flex items-center gap-2">🔵 Kraken</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleTestExchange}
+                      disabled={isTraining}
+                      className="px-3"
+                    >
+                      Test
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label className="text-xs">Training Mode</Label>
                   <Select value={mode} onValueChange={setMode} disabled={isTraining}>
