@@ -634,6 +634,70 @@ async def get_advanced_training_status():
     """Get advanced training status"""
     return sanitize_value(advanced_training_service.get_status())
 
+class DataInfoRequest(BaseModel):
+    symbol: str = "BTC/USDT"
+    timeframe: str = "1h"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+@api_router.post("/training/data-preview")
+async def preview_training_data(request: DataInfoRequest):
+    """
+    Preview data availability for a given date range.
+    Returns estimated sample count without fetching all data.
+    """
+    try:
+        from datetime import datetime as dt
+        
+        # Parse dates
+        start_date = None
+        end_date = None
+        if request.start_date:
+            start_date = dt.fromisoformat(request.start_date.replace('Z', '+00:00'))
+        if request.end_date:
+            end_date = dt.fromisoformat(request.end_date.replace('Z', '+00:00'))
+        
+        # Calculate estimated candles
+        timeframe_ms = advanced_data_pipeline._get_timeframe_ms(request.timeframe)
+        
+        if start_date and end_date:
+            time_diff_ms = (end_date - start_date).total_seconds() * 1000
+            estimated_candles = int(time_diff_ms / timeframe_ms)
+        else:
+            estimated_candles = advanced_data_pipeline.TIMEFRAME_LIMITS.get(request.timeframe, 1000)
+        
+        # Estimate training samples (after feature engineering drops some rows)
+        estimated_training_samples = max(0, estimated_candles - 250)  # Rough estimate for warmup period
+        
+        # Calculate data size warning
+        size_warning = None
+        if estimated_candles > 50000:
+            size_warning = "Large dataset - fetching may take several minutes"
+        elif estimated_candles > 100000:
+            size_warning = "Very large dataset - consider using daily timeframe for better performance"
+        
+        # Get earliest available data info
+        earliest_data_info = {
+            "BTC/USDT": "2017-08-17",  # Binance listing date
+            "ETH/USDT": "2017-08-17"
+        }
+        
+        return {
+            "symbol": request.symbol,
+            "timeframe": request.timeframe,
+            "start_date": str(start_date) if start_date else None,
+            "end_date": str(end_date) if end_date else None,
+            "estimated_candles": estimated_candles,
+            "estimated_training_samples": estimated_training_samples,
+            "size_warning": size_warning,
+            "earliest_available": earliest_data_info.get(request.symbol, "Unknown"),
+            "exchange": advanced_data_pipeline.get_active_exchange()
+        }
+        
+    except Exception as e:
+        logger.error(f"Data preview error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============== Model Management Endpoints ==============
 
 @api_router.get("/models/saved")
