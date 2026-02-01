@@ -575,30 +575,6 @@ class AdvancedDataPipeline:
         else:
             feature_columns = real_feature_columns + mock_feature_columns
             logger.info(f"Using {len(feature_columns)} features (including mocked data)")
-            'long_liquidations', 'short_liquidations', 'liquidation_ratio', 'liquidations_24h',
-            'exchange_inflow', 'exchange_outflow', 'exchange_netflow',
-            
-            # Cross-Market
-            'sp500_return', 'btc_sp500_corr_30d', 'sp500_above_ma',
-            'dxy_return', 'dxy_strength', 'btc_dxy_corr',
-            'gold_return', 'btc_gold_ratio',
-            'fear_greed_index', 'fg_contrarian',
-            
-            # Time-Based
-            'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos', 'month_sin', 'month_cos',
-            'session_asian', 'session_european', 'session_us', 'is_weekend',
-            'halving_cycle_sin', 'halving_cycle_cos', 'pre_halving', 'post_halving',
-            
-            # Advanced Technical
-            'wyckoff_score', 'spring', 'upthrust', 'effort_vs_result',
-            'wave_momentum', 'price_vs_fib_382', 'price_vs_fib_618',
-            'ichimoku_cloud_bullish', 'price_above_cloud', 'price_below_cloud',
-            'tk_cross_bullish', 'tk_cross_bearish', 'cloud_thickness',
-            'price_vs_poc', 'price_in_value_area', 'volume_concentration',
-            
-            # Whale Tracking
-            'whale_net_flow', 'whale_accumulation', 'whale_alert', 'whale_exchange_netflow',
-        ]
         
         # Filter to existing columns
         available_features = [col for col in feature_columns if col in df.columns]
