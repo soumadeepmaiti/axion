@@ -258,17 +258,40 @@ class GNNEncoder(layers.Layer):
     
     def __init__(self, units=64, num_layers=2, num_heads=4, dropout_rate=0.2, **kwargs):
         super().__init__(**kwargs)
-        self.gat_layers = [
-            GraphAttentionLayer(units, num_heads, dropout_rate)
-            for _ in range(num_layers)
-        ]
-        self.output_dense = Dense(units, activation='relu')
+        self.units = units
+        self.num_layers = num_layers
+        self.num_heads = num_heads
+        self.dropout_rate = dropout_rate
+        
+        self.gat_layers = []
+        self.output_dense = None
+    
+    def build(self, input_shape):
+        for _ in range(self.num_layers):
+            self.gat_layers.append(
+                GraphAttentionLayer(self.units, self.num_heads, self.dropout_rate)
+            )
+        self.output_dense = Dense(self.units, activation='relu')
+        super().build(input_shape)
     
     def call(self, inputs, adjacency_matrix=None, training=None):
         x = inputs
         for gat_layer in self.gat_layers:
             x = gat_layer(x, adjacency_matrix, training=training)
         return self.output_dense(x)
+    
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0], input_shape[1], self.units)
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'units': self.units,
+            'num_layers': self.num_layers,
+            'num_heads': self.num_heads,
+            'dropout_rate': self.dropout_rate
+        })
+        return config
 
 
 # ==================== LSTM AGGREGATOR ====================
