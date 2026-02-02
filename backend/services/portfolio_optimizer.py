@@ -286,6 +286,380 @@ class PortfolioOptimizer:
             'timestamp': datetime.now(timezone.utc).isoformat()
         }
     
+    async def optimize_deep_learning(
+        self,
+        assets: List[str],
+        investment_amount: float,
+        constraints: Optional[PortfolioConstraints] = None,
+        horizon: str = '7d'
+    ) -> Dict:
+        """
+        Deep Learning Portfolio optimization using neural network
+        """
+        constraints = constraints or PortfolioConstraints()
+        
+        try:
+            # Check if model is trained
+            if not self.deep_learning_trained:
+                return {
+                    'status': 'not_trained',
+                    'message': 'Deep Learning model needs training first. Click "Train DL Model" button.',
+                    'strategy': 'deep_learning'
+                }
+            
+            # Get available assets with data
+            available_assets = [a for a in assets if a in correlation_analyzer.price_data]
+            
+            if len(available_assets) < constraints.min_assets:
+                return {
+                    'status': 'error',
+                    'message': f'Not enough assets with data',
+                    'strategy': 'deep_learning'
+                }
+            
+            # Get predictions from deep learning model
+            weights = self.deep_network.predict_weights(
+                correlation_analyzer.price_data,
+                correlation_analyzer.returns_data
+            )
+            
+            if not weights:
+                return {
+                    'status': 'error',
+                    'message': 'Deep Learning prediction failed',
+                    'strategy': 'deep_learning'
+                }
+            
+            # Apply constraints
+            weight_array = np.array([weights.get(a, 0) for a in available_assets])
+            weight_array = np.clip(weight_array, constraints.min_weight_per_asset, constraints.max_weight_per_asset)
+            
+            if weight_array.sum() > 0:
+                weight_array = weight_array / weight_array.sum()
+            else:
+                weight_array = np.ones(len(available_assets)) / len(available_assets)
+            
+            # Build allocations
+            allocations = []
+            for i, asset in enumerate(available_assets):
+                weight = float(weight_array[i])
+                if weight > 0.001:
+                    amount = investment_amount * weight
+                    allocations.append({
+                        'symbol': asset,
+                        'weight': round(weight * 100, 2),
+                        'amount': round(amount, 2),
+                        'expected_return': 0  # DL model doesn't provide this directly
+                    })
+            
+            allocations.sort(key=lambda x: x['weight'], reverse=True)
+            
+            # Calculate portfolio metrics using the weights
+            expected_returns = correlation_analyzer.get_expected_returns()
+            cov_matrix = correlation_analyzer.covariance_matrix
+            
+            exp_ret_arr = np.array([expected_returns.get(a, 0) for a in available_assets])
+            cov_subset = cov_matrix.loc[available_assets, available_assets].values
+            cov_subset = np.nan_to_num(cov_subset, nan=0.01)
+            
+            port_return = self._portfolio_return(weight_array, exp_ret_arr)
+            port_vol = self._portfolio_volatility(weight_array, cov_subset)
+            port_sharpe = self._portfolio_sharpe(weight_array, exp_ret_arr, cov_subset)
+            
+            return {
+                'status': 'success',
+                'strategy': 'deep_learning',
+                'horizon': horizon,
+                'investment_amount': investment_amount,
+                'allocations': allocations,
+                'metrics': {
+                    'expected_return': round(port_return * 100, 2),
+                    'volatility': round(port_vol * 100, 2),
+                    'sharpe_ratio': round(port_sharpe, 3),
+                    'num_assets': len(allocations)
+                },
+                'model_info': self.deep_network.get_model_info(),
+                'timestamp': datetime.now(timezone.utc).isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Deep Learning optimization error: {e}")
+            return {
+                'status': 'error',
+                'message': str(e),
+                'strategy': 'deep_learning'
+            }
+    
+    async def optimize_rl_agent(
+        self,
+        assets: List[str],
+        investment_amount: float,
+        constraints: Optional[PortfolioConstraints] = None,
+        horizon: str = '7d'
+    ) -> Dict:
+        """
+        RL Agent Portfolio optimization using PPO
+        """
+        constraints = constraints or PortfolioConstraints()
+        
+        try:
+            # Check if model is trained
+            if not self.rl_agent_trained:
+                return {
+                    'status': 'not_trained',
+                    'message': 'RL Agent needs training first. Click "Train RL Agent" button.',
+                    'strategy': 'rl_agent'
+                }
+            
+            # Get available assets with data
+            available_assets = [a for a in assets if a in correlation_analyzer.price_data]
+            
+            if len(available_assets) < constraints.min_assets:
+                return {
+                    'status': 'error',
+                    'message': f'Not enough assets with data',
+                    'strategy': 'rl_agent'
+                }
+            
+            # Get predictions from RL agent
+            weights = self.rl_agent.predict_weights(
+                correlation_analyzer.price_data,
+                correlation_analyzer.returns_data
+            )
+            
+            if not weights:
+                return {
+                    'status': 'error',
+                    'message': 'RL Agent prediction failed',
+                    'strategy': 'rl_agent'
+                }
+            
+            # Apply constraints
+            weight_array = np.array([weights.get(a, 0) for a in available_assets])
+            weight_array = np.clip(weight_array, constraints.min_weight_per_asset, constraints.max_weight_per_asset)
+            
+            if weight_array.sum() > 0:
+                weight_array = weight_array / weight_array.sum()
+            else:
+                weight_array = np.ones(len(available_assets)) / len(available_assets)
+            
+            # Build allocations
+            allocations = []
+            for i, asset in enumerate(available_assets):
+                weight = float(weight_array[i])
+                if weight > 0.001:
+                    amount = investment_amount * weight
+                    allocations.append({
+                        'symbol': asset,
+                        'weight': round(weight * 100, 2),
+                        'amount': round(amount, 2),
+                        'expected_return': 0
+                    })
+            
+            allocations.sort(key=lambda x: x['weight'], reverse=True)
+            
+            # Calculate portfolio metrics
+            expected_returns = correlation_analyzer.get_expected_returns()
+            cov_matrix = correlation_analyzer.covariance_matrix
+            
+            exp_ret_arr = np.array([expected_returns.get(a, 0) for a in available_assets])
+            cov_subset = cov_matrix.loc[available_assets, available_assets].values
+            cov_subset = np.nan_to_num(cov_subset, nan=0.01)
+            
+            port_return = self._portfolio_return(weight_array, exp_ret_arr)
+            port_vol = self._portfolio_volatility(weight_array, cov_subset)
+            port_sharpe = self._portfolio_sharpe(weight_array, exp_ret_arr, cov_subset)
+            
+            return {
+                'status': 'success',
+                'strategy': 'rl_agent',
+                'horizon': horizon,
+                'investment_amount': investment_amount,
+                'allocations': allocations,
+                'metrics': {
+                    'expected_return': round(port_return * 100, 2),
+                    'volatility': round(port_vol * 100, 2),
+                    'sharpe_ratio': round(port_sharpe, 3),
+                    'num_assets': len(allocations)
+                },
+                'model_info': self.rl_agent.get_model_info(),
+                'timestamp': datetime.now(timezone.utc).isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"RL Agent optimization error: {e}")
+            return {
+                'status': 'error',
+                'message': str(e),
+                'strategy': 'rl_agent'
+            }
+    
+    async def optimize_hybrid(
+        self,
+        assets: List[str],
+        investment_amount: float,
+        objective: str = 'max_sharpe',
+        constraints: Optional[PortfolioConstraints] = None,
+        horizon: str = '7d'
+    ) -> Dict:
+        """
+        Hybrid Ensemble: Combines all available strategies
+        """
+        constraints = constraints or PortfolioConstraints()
+        
+        try:
+            available_assets = [a for a in assets if a in correlation_analyzer.price_data]
+            
+            if len(available_assets) < constraints.min_assets:
+                return {
+                    'status': 'error',
+                    'message': f'Not enough assets with data',
+                    'strategy': 'hybrid'
+                }
+            
+            # Collect weights from all available strategies
+            all_weights = []
+            strategy_weights = []  # Weight given to each strategy based on confidence
+            
+            # Traditional + ML (always available)
+            trad_result = await self.optimize_traditional_ml(
+                assets, investment_amount, objective, constraints, horizon
+            )
+            if trad_result.get('status') == 'success':
+                weights_dict = {a['symbol']: a['weight'] / 100 for a in trad_result['allocations']}
+                weight_arr = np.array([weights_dict.get(a, 0) for a in available_assets])
+                all_weights.append(weight_arr)
+                strategy_weights.append(1.0)  # Base weight for traditional
+            
+            # Deep Learning (if trained)
+            if self.deep_learning_trained:
+                dl_result = await self.optimize_deep_learning(assets, investment_amount, constraints, horizon)
+                if dl_result.get('status') == 'success':
+                    weights_dict = {a['symbol']: a['weight'] / 100 for a in dl_result['allocations']}
+                    weight_arr = np.array([weights_dict.get(a, 0) for a in available_assets])
+                    all_weights.append(weight_arr)
+                    strategy_weights.append(1.0)
+            
+            # RL Agent (if trained)
+            if self.rl_agent_trained:
+                rl_result = await self.optimize_rl_agent(assets, investment_amount, constraints, horizon)
+                if rl_result.get('status') == 'success':
+                    weights_dict = {a['symbol']: a['weight'] / 100 for a in rl_result['allocations']}
+                    weight_arr = np.array([weights_dict.get(a, 0) for a in available_assets])
+                    all_weights.append(weight_arr)
+                    strategy_weights.append(1.0)
+            
+            if not all_weights:
+                return {
+                    'status': 'error',
+                    'message': 'No strategies available for hybrid',
+                    'strategy': 'hybrid'
+                }
+            
+            # Weighted average of all strategies
+            strategy_weights = np.array(strategy_weights) / sum(strategy_weights)
+            combined_weights = np.zeros(len(available_assets))
+            
+            for i, w in enumerate(all_weights):
+                combined_weights += strategy_weights[i] * w
+            
+            # Apply constraints
+            combined_weights = np.clip(combined_weights, constraints.min_weight_per_asset, constraints.max_weight_per_asset)
+            if combined_weights.sum() > 0:
+                combined_weights = combined_weights / combined_weights.sum()
+            
+            # Build allocations
+            allocations = []
+            for i, asset in enumerate(available_assets):
+                weight = float(combined_weights[i])
+                if weight > 0.001:
+                    amount = investment_amount * weight
+                    allocations.append({
+                        'symbol': asset,
+                        'weight': round(weight * 100, 2),
+                        'amount': round(amount, 2),
+                        'expected_return': 0
+                    })
+            
+            allocations.sort(key=lambda x: x['weight'], reverse=True)
+            
+            # Calculate portfolio metrics
+            expected_returns = correlation_analyzer.get_expected_returns()
+            cov_matrix = correlation_analyzer.covariance_matrix
+            
+            exp_ret_arr = np.array([expected_returns.get(a, 0) for a in available_assets])
+            cov_subset = cov_matrix.loc[available_assets, available_assets].values
+            cov_subset = np.nan_to_num(cov_subset, nan=0.01)
+            
+            port_return = self._portfolio_return(combined_weights, exp_ret_arr)
+            port_vol = self._portfolio_volatility(combined_weights, cov_subset)
+            port_sharpe = self._portfolio_sharpe(combined_weights, exp_ret_arr, cov_subset)
+            
+            strategies_used = ['traditional_ml']
+            if self.deep_learning_trained:
+                strategies_used.append('deep_learning')
+            if self.rl_agent_trained:
+                strategies_used.append('rl_agent')
+            
+            return {
+                'status': 'success',
+                'strategy': 'hybrid',
+                'strategies_combined': strategies_used,
+                'horizon': horizon,
+                'investment_amount': investment_amount,
+                'allocations': allocations,
+                'metrics': {
+                    'expected_return': round(port_return * 100, 2),
+                    'volatility': round(port_vol * 100, 2),
+                    'sharpe_ratio': round(port_sharpe, 3),
+                    'num_assets': len(allocations)
+                },
+                'timestamp': datetime.now(timezone.utc).isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Hybrid optimization error: {e}")
+            return {
+                'status': 'error',
+                'message': str(e),
+                'strategy': 'hybrid'
+            }
+    
+    async def train_deep_learning(self, epochs: int = 100) -> Dict:
+        """Train the Deep Learning portfolio model"""
+        if not correlation_analyzer.price_data:
+            return {'status': 'error', 'message': 'No price data. Fetch data first.'}
+        
+        result = self.deep_network.train(
+            price_data=correlation_analyzer.price_data,
+            returns_data=correlation_analyzer.returns_data,
+            epochs=epochs
+        )
+        
+        if result.get('status') == 'success':
+            self.deep_learning_trained = True
+        
+        return result
+    
+    async def train_rl_agent(self, n_episodes: int = 50) -> Dict:
+        """Train the RL portfolio agent"""
+        if not correlation_analyzer.price_data:
+            return {'status': 'error', 'message': 'No price data. Fetch data first.'}
+        
+        # Setup environment
+        self.rl_agent.setup(
+            price_data=correlation_analyzer.price_data,
+            returns_data=correlation_analyzer.returns_data
+        )
+        
+        # Train
+        result = self.rl_agent.train(n_episodes=n_episodes)
+        
+        if result.get('status') == 'success':
+            self.rl_agent_trained = True
+        
+        return result
+    
     async def optimize_portfolio(
         self,
         assets: List[str],
