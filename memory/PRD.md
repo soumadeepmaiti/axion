@@ -12,7 +12,7 @@ User wants two training modes:
 
 ## User Choices
 - Data Source: CCXT (Multi-Exchange Support: Binance, OKX, KuCoin, Bybit, Kraken, Coinbase)
-- Trading Pairs: BTC/USDT, ETH/USDT
+- Trading Pairs: BTC/USDT, ETH/USDT + 20 altcoins for portfolio
 - Model: Fully trainable with user-configurable network depth
 - Sentiment: FinBERT + CryptoPanic (MOCKED - invalid API key)
 - Training Date Range: User-selectable
@@ -26,22 +26,55 @@ User wants two training modes:
 │   ├── ml_models/
 │   │   ├── hybrid_model.py
 │   │   ├── advanced_models.py
-│   │   ├── rl_models.py            # NEW: DQN, PPO RL agents
-│   │   └── multi_model_ensemble.py # NEW: Multi-model training
+│   │   ├── rl_models.py            # DQN, PPO RL agents
+│   │   ├── multi_model_ensemble.py # Multi-model training
+│   │   └── tcn_gnn_lstm_hybrid.py  # TCN-GNN-LSTM model
 │   └── services/
 │       ├── advanced_data_pipeline.py  # Multi-exchange support
 │       ├── sentiment_service.py       # FinBERT (mocked)
 │       ├── advanced_training_service.py
 │       ├── llm_service.py             # OpenAI, Claude, Gemini
-│       └── backtesting_service.py
+│       ├── backtesting_service.py
+│       ├── correlation_analyzer.py    # NEW: Multi-asset correlations
+│       ├── multi_asset_predictor.py   # NEW: ML predictions per asset
+│       └── portfolio_optimizer.py     # NEW: Portfolio optimization
 └── frontend/
     └── src/pages/
         ├── Dashboard.jsx   # Price charts, predictions
         ├── Training.jsx    # Network config, multi-model, RL
+        ├── Portfolio.jsx   # NEW: Portfolio optimization page
         ├── Advisor.jsx     # LLM chat interface
         ├── Backtesting.jsx # Strategy backtesting
         └── Settings.jsx    # API keys, exchanges
 ```
+
+## Latest Updates (Feb 2, 2026)
+
+### Multi-Asset Portfolio Optimization - Phase 1 (Feb 2, 2026)
+- ✅ **NEW PAGE:** `/portfolio` - Portfolio Optimizer with 4 tabs
+- ✅ **20 Default Assets:** BTC, ETH, BNB, SOL, XRP, ADA, DOGE, AVAX, DOT, MATIC, LINK, UNI, ATOM, LTC, FIL, APT, ARB, OP, INJ, NEAR
+- ✅ **Strategy A: Traditional+ML:** Mean-Variance Optimization (Markowitz) with ML-predicted returns
+- ✅ **Optimization Objectives:** Max Sharpe, Max Return, Min Risk, Risk Parity
+- ✅ **Prediction Horizons:** 24h, 7d, 30d
+- ✅ **Portfolio Constraints:** Max weight per asset, min assets in portfolio
+- ✅ **Correlation Heatmap:** Visual correlation matrix between all assets
+- ✅ **Efficient Frontier Chart:** Risk vs Return curve visualization
+- ✅ **Strategy Comparison:** Side-by-side view of all 4 strategies
+- ✅ **Investment Breakdown:** Shows $ allocation per asset for given investment
+- ⏳ **Phase 2 Pending:** Deep Learning Portfolio, RL Agent strategies
+
+### Backend Services Created
+- `correlation_analyzer.py`: Fetches multi-asset data, calculates correlation/covariance matrices
+- `multi_asset_predictor.py`: Trains LSTM models per asset, predicts returns
+- `portfolio_optimizer.py`: Implements Mean-Variance Optimization with scipy
+
+### API Endpoints Added
+- `GET /api/portfolio/assets` - List available assets and strategies
+- `POST /api/portfolio/fetch-data` - Fetch data for multiple assets
+- `POST /api/portfolio/train` - Train ML models for all assets
+- `POST /api/portfolio/optimize` - Get optimal allocation
+- `GET /api/portfolio/correlation` - Get correlation matrix
+- `GET /api/portfolio/efficient-frontier` - Get efficient frontier data
 
 ## Latest Updates (Feb 1, 2026)
 
