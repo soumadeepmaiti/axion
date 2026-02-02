@@ -348,13 +348,23 @@ const Portfolio = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground font-mono">Portfolio Optimizer</h1>
           <p className="text-muted-foreground mt-1">
-            Multi-Asset Allocation with ML Predictions
+            Multi-Asset Allocation with 4 AI Strategies
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {modelInfo?.is_trained && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {modelInfo?.deep_learning_trained && (
+            <Badge className="bg-purple-500/20 text-purple-400">
+              DL Model ✓
+            </Badge>
+          )}
+          {modelInfo?.rl_agent_trained && (
+            <Badge className="bg-orange-500/20 text-orange-400">
+              RL Agent ✓
+            </Badge>
+          )}
+          {modelInfo?.multi_asset_predictor?.is_trained && (
             <Badge className="bg-green-500/20 text-green-400">
-              {modelInfo.num_models} Models Trained
+              {modelInfo.multi_asset_predictor.num_models} ML Models
             </Badge>
           )}
           {dataLoaded && (
