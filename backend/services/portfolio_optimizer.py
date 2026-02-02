@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from scipy.optimize import minimize
 from dataclasses import dataclass
 import logging
+import asyncio
 
 from services.correlation_analyzer import correlation_analyzer, DEFAULT_ASSETS
 from services.multi_asset_predictor import multi_asset_predictor
@@ -30,8 +31,9 @@ class PortfolioOptimizer:
     """
     Multi-strategy portfolio optimizer supporting:
     - Traditional Mean-Variance (Markowitz)
-    - ML-enhanced optimization
-    - Risk-based optimization
+    - Deep Learning Portfolio Network
+    - RL Agent (PPO)
+    - Hybrid Ensemble
     """
     
     STRATEGIES = ['traditional_ml', 'deep_learning', 'rl_agent', 'hybrid']
@@ -42,6 +44,30 @@ class PortfolioOptimizer:
         self.last_optimization: Optional[Dict] = None
         self.optimization_history: List[Dict] = []
         self.is_optimizing = False
+        
+        # Deep Learning and RL models (lazy loaded)
+        self._deep_network = None
+        self._rl_agent = None
+        
+        # Training status
+        self.deep_learning_trained = False
+        self.rl_agent_trained = False
+    
+    @property
+    def deep_network(self):
+        """Lazy load deep learning network"""
+        if self._deep_network is None:
+            from ml_models.deep_portfolio_network import DeepPortfolioNetwork
+            self._deep_network = DeepPortfolioNetwork()
+        return self._deep_network
+    
+    @property
+    def rl_agent(self):
+        """Lazy load RL agent"""
+        if self._rl_agent is None:
+            from ml_models.rl_portfolio_agent import RLPortfolioAgent
+            self._rl_agent = RLPortfolioAgent()
+        return self._rl_agent
     
     def _portfolio_return(self, weights: np.ndarray, expected_returns: np.ndarray) -> float:
         """Calculate expected portfolio return"""
