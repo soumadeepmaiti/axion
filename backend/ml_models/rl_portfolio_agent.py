@@ -423,25 +423,37 @@ class RLPortfolioAgent:
         if not self.is_trained or self.agent is None:
             return {}
         
-        # Create temporary environment for prediction
-        temp_env = PortfolioEnvironment(
-            price_data=price_data,
-            returns_data=returns_data
-        )
-        
-        # Get current state
-        state = temp_env.reset()
-        
-        # Predict weights
-        weights = self.agent.predict_weights(state)
-        
-        # Map to asset names
-        result = {}
-        for i, asset in enumerate(temp_env.asset_names):
-            if i < len(weights):
-                result[asset] = float(weights[i])
-        
-        return result
+        try:
+            # Use the original environment if available (same state dimension)
+            if self.env is not None:
+                # Reset the original environment with updated data
+                state = self.env.reset()
+                
+                # Predict weights using the trained agent
+                weights = self.agent.predict_weights(state)
+                
+                # Map to asset names from original training
+                result = {}
+                for i, asset in enumerate(self.asset_names):
+                    if i < len(weights):
+                        result[asset] = float(weights[i])
+                
+                return result
+            else:
+                # Fallback: return equal weights
+                logger.warning("RL Agent environment not available, returning equal weights")
+                result = {}
+                for asset in self.asset_names:
+                    result[asset] = 1.0 / len(self.asset_names)
+                return result
+                
+        except Exception as e:
+            logger.error(f"RL Agent prediction error: {e}")
+            # Return equal weights on error
+            result = {}
+            for asset in self.asset_names:
+                result[asset] = 1.0 / len(self.asset_names)
+            return result
     
     def get_model_info(self) -> Dict:
         """Get model information"""
