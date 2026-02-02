@@ -1098,6 +1098,264 @@ async def get_backtest_history(limit: int = 10):
         logger.error(f"Error fetching backtest history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============== Portfolio Optimization Endpoints ==============
+
+from services.correlation_analyzer import correlation_analyzer, DEFAULT_ASSETS
+from services.multi_asset_predictor import multi_asset_predictor
+from services.portfolio_optimizer import portfolio_optimizer, PortfolioConstraints
+
+class PortfolioOptimizeRequest(BaseModel):
+    assets: Optional[List[str]] = None  # None = use all default assets
+    investment_amount: float = 1000.0
+    strategy: str = "traditional_ml"  # traditional_ml, deep_learning, rl_agent, hybrid
+    objective: str = "max_sharpe"  # max_sharpe, max_return, min_risk, risk_parity
+    horizon: str = "7d"  # 24h, 7d, 30d
+    compare_all: bool = False
+    constraints: Optional[Dict[str, Any]] = None  # max_weight, min_weight, min_assets, etc.
+
+class PortfolioTrainRequest(BaseModel):
+    assets: Optional[List[str]] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    timeframe: str = "1d"
+    epochs: int = 50
+
+@api_router.get("/portfolio/assets")
+async def get_available_assets():
+    """Get list of available assets for portfolio optimization"""
+    return {
+        "assets": DEFAULT_ASSETS,
+        "count": len(DEFAULT_ASSETS),
+        "strategies": portfolio_optimizer.STRATEGIES,
+        "objectives": portfolio_optimizer.OBJECTIVES,
+        "horizons": portfolio_optimizer.HORIZONS
+    }
+
+@api_router.post("/portfolio/fetch-data")
+async def fetch_portfolio_data(request: PortfolioTrainRequest):
+    """Fetch historical data for multiple assets"""
+    try:
+        from datetime import datetime as dt
+        
+        assets = request.assets or DEFAULT_ASSETS
+        start_date = None
+        end_date = None
+        
+        if request.start_date:
+            start_date = dt.fromisoformat(request.start_date.replace('Z', '+00:00'))
+        if request.end_date:
+            end_date = dt.fromisoformat(request.end_date.replace('Z', '+00:00'))
+        
+        # Fetch data for all assets
+        data = await correlation_analyzer.fetch_multi_asset_data(
+            assets=assets,
+            timeframe=request.timeframe,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        # Calculate correlations
+        correlation_analyzer.calculate_returns()
+        correlation_analyzer.calculate_correlation_matrix()
+        correlation_analyzer.calculate_covariance_matrix()
+        
+        # Get statistics
+        stats = correlation_analyzer.get_asset_statistics()
+        
+        return sanitize_value({
+            "status": "success",
+            "assets_fetched": len(data),
+            "assets": list(data.keys()),
+            "statistics": stats,
+            "correlation_data": correlation_analyzer.get_correlation_heatmap_data()
+        })
+        
+    except Exception as e:
+        logger.error(f"Portfolio data fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/portfolio/train")
+async def train_portfolio_models(request: PortfolioTrainRequest, background_tasks: BackgroundTasks):
+    """Train prediction models for all assets"""
+    try:
+        from datetime import datetime as dt
+        
+        assets = request.assets or DEFAULT_ASSETS
+        start_date = None
+        end_date = None
+        
+        if request.start_date:
+            start_date = dt.fromisoformat(request.start_date.replace('Z', '+00:00'))
+        if request.end_date:
+            end_date = dt.fromisoformat(request.end_date.replace('Z', '+00:00'))
+        
+        # Check if already training
+        if multi_asset_predictor.training_status.get('is_training'):
+            return {"status": "error", "message": "Training already in progress"}
+        
+        # Start training in background
+        async def train_task():
+            result = await multi_asset_predictor.train_all_assets(
+                assets=assets,
+                start_date=start_date,
+                end_date=end_date,
+                timeframe=request.timeframe,
+                epochs=request.epochs
+            )
+            # Save to database
+            doc = {
+                "id": str(uuid.uuid4()),
+                "type": "portfolio_training",
+                "result": sanitize_value(result),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.training_history.insert_one(doc)
+        
+        background_tasks.add_task(train_task)
+        
+        return {
+            "status": "started",
+            "message": f"Training started for {len(assets)} assets",
+            "assets": assets
+        }
+        
+    except Exception as e:
+        logger.error(f"Portfolio training error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/portfolio/training-status")
+async def get_portfolio_training_status():
+    """Get portfolio model training status"""
+    return sanitize_value(multi_asset_predictor.get_training_status())
+
+@api_router.get("/portfolio/model-info")
+async def get_portfolio_model_info():
+    """Get information about trained portfolio models"""
+    return sanitize_value(multi_asset_predictor.get_model_info())
+
+@api_router.post("/portfolio/optimize")
+async def optimize_portfolio(request: PortfolioOptimizeRequest):
+    """Optimize portfolio allocation"""
+    try:
+        assets = request.assets or DEFAULT_ASSETS
+        
+        # Build constraints
+        constraints = PortfolioConstraints()
+        if request.constraints:
+            if 'max_weight' in request.constraints:
+                constraints.max_weight_per_asset = request.constraints['max_weight'] / 100
+            if 'min_weight' in request.constraints:
+                constraints.min_weight_per_asset = request.constraints['min_weight'] / 100
+            if 'min_assets' in request.constraints:
+                constraints.min_assets = request.constraints['min_assets']
+            if 'max_assets' in request.constraints:
+                constraints.max_assets = request.constraints['max_assets']
+            if 'target_return' in request.constraints:
+                constraints.target_return = request.constraints['target_return'] / 100
+        
+        # Ensure we have data
+        if not correlation_analyzer.price_data:
+            # Fetch data first
+            await correlation_analyzer.fetch_multi_asset_data(assets=assets)
+            correlation_analyzer.calculate_returns()
+            correlation_analyzer.calculate_correlation_matrix()
+            correlation_analyzer.calculate_covariance_matrix()
+        
+        # Optimize
+        result = await portfolio_optimizer.optimize_portfolio(
+            assets=assets,
+            investment_amount=request.investment_amount,
+            strategy=request.strategy,
+            objective=request.objective,
+            constraints=constraints,
+            horizon=request.horizon,
+            compare_all=request.compare_all
+        )
+        
+        # Save to database
+        doc = {
+            "id": str(uuid.uuid4()),
+            "type": "portfolio_optimization",
+            "request": request.dict(),
+            "result": sanitize_value(result),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.portfolio_history.insert_one(doc)
+        
+        return sanitize_value(result)
+        
+    except Exception as e:
+        logger.error(f"Portfolio optimization error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/portfolio/correlation")
+async def get_correlation_matrix():
+    """Get correlation matrix for visualization"""
+    try:
+        if correlation_analyzer.correlation_matrix is None:
+            return {"status": "error", "message": "No correlation data. Fetch data first."}
+        
+        return sanitize_value({
+            "status": "success",
+            "data": correlation_analyzer.get_correlation_heatmap_data(),
+            "diversification_pairs": correlation_analyzer.find_diversification_pairs(threshold=0.3)
+        })
+        
+    except Exception as e:
+        logger.error(f"Correlation matrix error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/portfolio/efficient-frontier")
+async def get_efficient_frontier(assets: Optional[str] = None):
+    """Get efficient frontier data for visualization"""
+    try:
+        asset_list = assets.split(',') if assets else DEFAULT_ASSETS
+        
+        if not correlation_analyzer.price_data:
+            return {"status": "error", "message": "No data. Fetch data first."}
+        
+        result = portfolio_optimizer.get_efficient_frontier(asset_list)
+        return sanitize_value(result)
+        
+    except Exception as e:
+        logger.error(f"Efficient frontier error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/portfolio/predictions")
+async def get_portfolio_predictions(horizon: str = "7d"):
+    """Get return predictions for all assets"""
+    try:
+        if not multi_asset_predictor.is_trained:
+            return {"status": "error", "message": "Models not trained. Train first."}
+        
+        predictions = await multi_asset_predictor.predict_returns(horizon=horizon)
+        return sanitize_value({
+            "status": "success",
+            "horizon": horizon,
+            "predictions": predictions
+        })
+        
+    except Exception as e:
+        logger.error(f"Predictions error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/portfolio/statistics")
+async def get_portfolio_statistics():
+    """Get statistics for all assets"""
+    try:
+        if not correlation_analyzer.price_data:
+            return {"status": "error", "message": "No data. Fetch data first."}
+        
+        stats = correlation_analyzer.get_asset_statistics()
+        return sanitize_value({
+            "status": "success",
+            "statistics": stats
+        })
+        
+    except Exception as e:
+        logger.error(f"Statistics error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============== Dashboard Stats ==============
 
 @api_router.get("/dashboard/stats")
