@@ -463,6 +463,44 @@ const Portfolio = () => {
                   </Button>
                 </div>
                 
+                {/* Advanced Model Training */}
+                <div className="mt-4 p-3 bg-secondary/30 rounded-lg space-y-3">
+                  <Label className="text-xs font-semibold">Advanced Strategy Training</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      onClick={handleTrainDeepLearning} 
+                      disabled={dlTraining || !dataLoaded}
+                      variant={modelInfo?.deep_learning_trained ? "outline" : "default"}
+                      size="sm"
+                      className={modelInfo?.deep_learning_trained ? "border-purple-500/50" : "bg-purple-600 hover:bg-purple-700"}
+                    >
+                      {dlTraining ? (
+                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                      ) : (
+                        <Zap className="w-3 h-3 mr-1" />
+                      )}
+                      {modelInfo?.deep_learning_trained ? "DL Trained ✓" : "Train DL Model"}
+                    </Button>
+                    <Button 
+                      onClick={handleTrainRLAgent} 
+                      disabled={rlTraining || !dataLoaded}
+                      variant={modelInfo?.rl_agent_trained ? "outline" : "default"}
+                      size="sm"
+                      className={modelInfo?.rl_agent_trained ? "border-orange-500/50" : "bg-orange-600 hover:bg-orange-700"}
+                    >
+                      {rlTraining ? (
+                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                      ) : (
+                        <Shield className="w-3 h-3 mr-1" />
+                      )}
+                      {modelInfo?.rl_agent_trained ? "RL Trained ✓" : "Train RL Agent"}
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Train Deep Learning and RL models for better portfolio optimization
+                  </p>
+                </div>
+                
                 {trainingStatus?.is_training && (
                   <div className="mt-4 p-3 bg-primary/10 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
