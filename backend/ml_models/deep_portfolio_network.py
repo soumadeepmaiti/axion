@@ -280,23 +280,46 @@ class DeepPortfolioNetwork:
         if not self.is_trained or self.model is None:
             return {}
         
-        # Prepare latest data
-        X, _ = self._prepare_training_data(price_data, returns_data)
-        
-        if len(X) == 0:
-            return {}
-        
-        # Get prediction for latest timestep
-        latest_X = X[-1:].reshape(1, X.shape[1], X.shape[2])
-        weights = self.model.predict(latest_X, verbose=0)[0]
-        
-        # Map weights to asset names
-        result = {}
-        for i, asset in enumerate(self.asset_names):
-            if i < len(weights):
-                result[asset] = float(weights[i])
-        
-        return result
+        try:
+            # Prepare latest data
+            X, _ = self._prepare_training_data(price_data, returns_data)
+            
+            if len(X) == 0:
+                # Return equal weights if no data
+                result = {}
+                for asset in self.asset_names:
+                    result[asset] = 1.0 / len(self.asset_names)
+                return result
+            
+            # Check if input shape matches model expectation
+            expected_shape = self.model.input_shape
+            if X.shape[1] != expected_shape[1] or X.shape[2] != expected_shape[2]:
+                logger.warning(f"Input shape mismatch: got {X.shape}, expected {expected_shape}")
+                # Return equal weights on shape mismatch
+                result = {}
+                for asset in self.asset_names:
+                    result[asset] = 1.0 / len(self.asset_names)
+                return result
+            
+            # Get prediction for latest timestep
+            latest_X = X[-1:].reshape(1, X.shape[1], X.shape[2])
+            weights = self.model.predict(latest_X, verbose=0)[0]
+            
+            # Map weights to asset names
+            result = {}
+            for i, asset in enumerate(self.asset_names):
+                if i < len(weights):
+                    result[asset] = float(weights[i])
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Deep Learning prediction error: {e}")
+            # Return equal weights on error
+            result = {}
+            for asset in self.asset_names:
+                result[asset] = 1.0 / len(self.asset_names)
+            return result
     
     def get_model_info(self) -> Dict:
         """Get model information"""
