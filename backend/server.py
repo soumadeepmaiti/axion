@@ -1231,7 +1231,48 @@ async def get_portfolio_training_status():
 @api_router.get("/portfolio/model-info")
 async def get_portfolio_model_info():
     """Get information about trained portfolio models"""
-    return sanitize_value(multi_asset_predictor.get_model_info())
+    return sanitize_value({
+        "multi_asset_predictor": multi_asset_predictor.get_model_info(),
+        "deep_learning_trained": portfolio_optimizer.deep_learning_trained,
+        "rl_agent_trained": portfolio_optimizer.rl_agent_trained,
+        "deep_learning_info": portfolio_optimizer.deep_network.get_model_info() if portfolio_optimizer.deep_learning_trained else None,
+        "rl_agent_info": portfolio_optimizer.rl_agent.get_model_info() if portfolio_optimizer.rl_agent_trained else None
+    })
+
+class PortfolioModelTrainRequest(BaseModel):
+    model_type: str  # 'deep_learning' or 'rl_agent'
+    epochs: int = 100
+    n_episodes: int = 50
+
+@api_router.post("/portfolio/train-model")
+async def train_portfolio_model(request: PortfolioModelTrainRequest, background_tasks: BackgroundTasks):
+    """Train Deep Learning or RL portfolio models"""
+    try:
+        if not correlation_analyzer.price_data:
+            return {"status": "error", "message": "No data. Fetch data first."}
+        
+        if request.model_type == 'deep_learning':
+            async def train_dl():
+                result = await portfolio_optimizer.train_deep_learning(epochs=request.epochs)
+                logger.info(f"Deep Learning training complete: {result}")
+            
+            background_tasks.add_task(train_dl)
+            return {"status": "started", "model_type": "deep_learning", "epochs": request.epochs}
+        
+        elif request.model_type == 'rl_agent':
+            async def train_rl():
+                result = await portfolio_optimizer.train_rl_agent(n_episodes=request.n_episodes)
+                logger.info(f"RL Agent training complete: {result}")
+            
+            background_tasks.add_task(train_rl)
+            return {"status": "started", "model_type": "rl_agent", "episodes": request.n_episodes}
+        
+        else:
+            return {"status": "error", "message": f"Unknown model type: {request.model_type}"}
+        
+    except Exception as e:
+        logger.error(f"Portfolio model training error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/portfolio/optimize")
 async def optimize_portfolio(request: PortfolioOptimizeRequest):
