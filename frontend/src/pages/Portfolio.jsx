@@ -774,7 +774,7 @@ const Portfolio = () => {
                           {key === 'hybrid' && '🔀 Hybrid'}
                         </CardTitle>
                         {optimizationResult.recommended === key && (
-                          <Badge className="bg-primary text-[10px]">Recommended</Badge>
+                          <Badge className="bg-primary text-[10px]">Best</Badge>
                         )}
                       </div>
                     </CardHeader>
@@ -810,11 +810,25 @@ const Portfolio = () => {
                               {strategy.metrics?.num_assets}
                             </span>
                           </div>
+                          {strategy.strategies_combined && (
+                            <div className="text-[10px] text-muted-foreground pt-2 border-t border-border">
+                              Combined: {strategy.strategies_combined.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      ) : strategy.status === 'not_trained' ? (
+                        <div className="text-center py-4 space-y-2">
+                          <Badge variant="outline" className="text-yellow-400">
+                            Not Trained
+                          </Badge>
+                          <p className="text-[10px] text-muted-foreground">
+                            Train this model in Configuration tab
+                          </p>
                         </div>
                       ) : (
                         <div className="text-center py-4">
-                          <Badge variant="outline" className="text-yellow-400">
-                            {strategy.status === 'pending' ? 'Coming in Phase 2' : 'Error'}
+                          <Badge variant="outline" className="text-red-400">
+                            {strategy.message || 'Error'}
                           </Badge>
                         </div>
                       )}
