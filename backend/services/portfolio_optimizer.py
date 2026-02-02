@@ -693,31 +693,25 @@ class PortfolioOptimizer:
                 # Run all strategies and compare
                 results = {}
                 
-                # Strategy A: Traditional + ML
+                # Strategy A: Traditional + ML (always available)
                 results['traditional_ml'] = await self.optimize_traditional_ml(
                     assets, investment_amount, objective, constraints, horizon, use_ml_predictions=True
                 )
                 
-                # Strategy B: Deep Learning (placeholder - will be implemented in Phase 2)
-                results['deep_learning'] = {
-                    'status': 'pending',
-                    'message': 'Deep Learning strategy will be implemented in Phase 2',
-                    'strategy': 'deep_learning'
-                }
+                # Strategy B: Deep Learning
+                results['deep_learning'] = await self.optimize_deep_learning(
+                    assets, investment_amount, constraints, horizon
+                )
                 
-                # Strategy C: RL Agent (placeholder - will be implemented in Phase 2)
-                results['rl_agent'] = {
-                    'status': 'pending',
-                    'message': 'RL Agent strategy will be implemented in Phase 2',
-                    'strategy': 'rl_agent'
-                }
+                # Strategy C: RL Agent
+                results['rl_agent'] = await self.optimize_rl_agent(
+                    assets, investment_amount, constraints, horizon
+                )
                 
-                # Strategy D: Hybrid (average of available strategies)
-                if results['traditional_ml'].get('status') == 'success':
-                    results['hybrid'] = results['traditional_ml'].copy()
-                    results['hybrid']['strategy'] = 'hybrid'
-                    results['hybrid']['note'] = 'Currently using Traditional+ML (other strategies pending)'
-                else:
+                # Strategy D: Hybrid Ensemble
+                results['hybrid'] = await self.optimize_hybrid(
+                    assets, investment_amount, objective, constraints, horizon
+                )
                     results['hybrid'] = {
                         'status': 'pending',
                         'message': 'Hybrid strategy requires at least one working strategy',
