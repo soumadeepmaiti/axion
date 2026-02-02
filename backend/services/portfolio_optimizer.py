@@ -712,11 +712,17 @@ class PortfolioOptimizer:
                 results['hybrid'] = await self.optimize_hybrid(
                     assets, investment_amount, objective, constraints, horizon
                 )
-                    results['hybrid'] = {
-                        'status': 'pending',
-                        'message': 'Hybrid strategy requires at least one working strategy',
-                        'strategy': 'hybrid'
-                    }
+                
+                # Determine recommended strategy based on Sharpe ratio
+                best_strategy = 'traditional_ml'
+                best_sharpe = -float('inf')
+                
+                for name, res in results.items():
+                    if res.get('status') == 'success':
+                        sharpe = res.get('metrics', {}).get('sharpe_ratio', -999)
+                        if sharpe > best_sharpe:
+                            best_sharpe = sharpe
+                            best_strategy = name
                 
                 self.last_optimization = {
                     'type': 'comparison',
@@ -728,7 +734,9 @@ class PortfolioOptimizer:
                     'status': 'success',
                     'type': 'comparison',
                     'strategies': results,
-                    'recommended': 'traditional_ml',  # Best available strategy
+                    'recommended': best_strategy,
+                    'deep_learning_trained': self.deep_learning_trained,
+                    'rl_agent_trained': self.rl_agent_trained,
                     'timestamp': datetime.now(timezone.utc).isoformat()
                 }
             
@@ -738,18 +746,18 @@ class PortfolioOptimizer:
                     result = await self.optimize_traditional_ml(
                         assets, investment_amount, objective, constraints, horizon
                     )
-                elif strategy in ['deep_learning', 'rl_agent']:
-                    result = {
-                        'status': 'pending',
-                        'message': f'{strategy} strategy will be implemented in Phase 2',
-                        'strategy': strategy
-                    }
+                elif strategy == 'deep_learning':
+                    result = await self.optimize_deep_learning(
+                        assets, investment_amount, constraints, horizon
+                    )
+                elif strategy == 'rl_agent':
+                    result = await self.optimize_rl_agent(
+                        assets, investment_amount, constraints, horizon
+                    )
                 elif strategy == 'hybrid':
-                    # For now, hybrid uses traditional_ml
-                    result = await self.optimize_traditional_ml(
+                    result = await self.optimize_hybrid(
                         assets, investment_amount, objective, constraints, horizon
                     )
-                    result['strategy'] = 'hybrid'
                 else:
                     result = {
                         'status': 'error',
