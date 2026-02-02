@@ -64,6 +64,8 @@ const Portfolio = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [trainingStatus, setTrainingStatus] = useState(null);
   const [modelInfo, setModelInfo] = useState(null);
+  const [dlTraining, setDlTraining] = useState(false);
+  const [rlTraining, setRlTraining] = useState(false);
 
   // Fetch initial data
   useEffect(() => {
@@ -87,6 +89,86 @@ const Portfolio = () => {
     } catch (error) {
       console.error("Error fetching training status:", error);
       return null;
+    }
+  };
+
+  // Train Deep Learning Model
+  const handleTrainDeepLearning = async () => {
+    if (!dataLoaded) {
+      toast.error("Fetch data first");
+      return;
+    }
+    
+    setDlTraining(true);
+    try {
+      const response = await API.post('/portfolio/train-model', {
+        model_type: 'deep_learning',
+        epochs: 100
+      });
+      
+      if (response.data.status === 'started') {
+        toast.success("Deep Learning training started");
+        
+        // Poll for completion
+        const pollInterval = setInterval(async () => {
+          await fetchModelInfo();
+          if (modelInfo?.deep_learning_trained) {
+            clearInterval(pollInterval);
+            setDlTraining(false);
+            toast.success("Deep Learning model trained!");
+          }
+        }, 3000);
+        
+        // Timeout after 3 minutes
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setDlTraining(false);
+          fetchModelInfo();
+        }, 180000);
+      }
+    } catch (error) {
+      toast.error("Training failed");
+      setDlTraining(false);
+    }
+  };
+
+  // Train RL Agent
+  const handleTrainRLAgent = async () => {
+    if (!dataLoaded) {
+      toast.error("Fetch data first");
+      return;
+    }
+    
+    setRlTraining(true);
+    try {
+      const response = await API.post('/portfolio/train-model', {
+        model_type: 'rl_agent',
+        n_episodes: 50
+      });
+      
+      if (response.data.status === 'started') {
+        toast.success("RL Agent training started");
+        
+        // Poll for completion
+        const pollInterval = setInterval(async () => {
+          await fetchModelInfo();
+          if (modelInfo?.rl_agent_trained) {
+            clearInterval(pollInterval);
+            setRlTraining(false);
+            toast.success("RL Agent trained!");
+          }
+        }, 3000);
+        
+        // Timeout after 3 minutes
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setRlTraining(false);
+          fetchModelInfo();
+        }, 180000);
+      }
+    } catch (error) {
+      toast.error("Training failed");
+      setRlTraining(false);
     }
   };
 
