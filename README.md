@@ -136,7 +136,9 @@ Comprehensive strategy backtesting with detailed performance analytics.
 ### 🤖 AI Trading Advisor
 Interactive AI assistant powered by LLMs for market analysis and trading guidance.
 
-![AI Advisor](assets/advisor.png)
+<p align="center">
+  <img src="assets/advisor.png" alt="AI Advisor" width="90%">
+</p>
 
 **Capabilities:**
 - Real-time market analysis
