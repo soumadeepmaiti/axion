@@ -18,7 +18,7 @@ import {
 import {
   Wallet, TrendingUp, PieChart as PieChartIcon, Settings, Brain,
   DollarSign, Target, Percent, RefreshCw, Play, ChevronRight,
-  BarChart3, Layers, Zap, Shield, GitCompare
+  BarChart3, Layers, Zap, Shield, GitCompare, Save, Download, Trash2, FolderOpen
 } from "lucide-react";
 import { API } from "@/lib/api";
 
