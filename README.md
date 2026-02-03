@@ -80,7 +80,9 @@ Train state-of-the-art deep learning models with a visual, no-code interface.
 ### 📊 Portfolio Optimizer
 Multi-asset portfolio optimization with 4 distinct AI strategies.
 
-![Portfolio](assets/portfolio.png)
+<p align="center">
+  <img src="assets/portfolio.png" alt="Portfolio" width="90%">
+</p>
 
 **Optimization Strategies:**
 
