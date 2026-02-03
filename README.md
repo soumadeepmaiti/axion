@@ -54,7 +54,7 @@ Real-time market monitoring with live price feeds, sentiment analysis, volume tr
 Train state-of-the-art deep learning models with a visual, no-code interface.
 
 <p align="center">
-  <img src="assets/training.png" alt="Training" width="90%">
+  <img src="https://raw.githubusercontent.com/Soumadeep21/axion/main/assets/training.png" alt="Training" width="90%">
 </p>
 
 **Supported Architectures:**
