@@ -503,8 +503,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📬 Contact
 
-- **Project Link:** [https://github.com/yourusername/axion](https://github.com/yourusername/axion)
-- **Issues:** [GitHub Issues](https://github.com/yourusername/axion/issues)
+- **Project Link:** [https://github.com/Soumadeep21/axion](https://github.com/Soumadeep21/axion)
+- **Issues:** [GitHub Issues](https://github.com/Soumadeep21/axion/issues)
 
 ---
 
