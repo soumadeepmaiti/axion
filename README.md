@@ -38,7 +38,9 @@
 ### 🏠 Trading Dashboard
 Real-time market monitoring with live price feeds, sentiment analysis, volume tracking, and AI-powered predictions.
 
-![Dashboard](assets/dashboard.png)
+<p align="center">
+  <img src="assets/dashboard.png" alt="Dashboard" width="90%">
+</p>
 
 **Key Features:**
 - Live price charts with multiple timeframes (1m, 5m, 1h, 1d)
