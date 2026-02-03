@@ -53,7 +53,9 @@ Real-time market monitoring with live price feeds, sentiment analysis, volume tr
 ### 🧠 Advanced Model Training
 Train state-of-the-art deep learning models with a visual, no-code interface.
 
-![Training](assets/training.png)
+<p align="center">
+  <img src="assets/training.png" alt="Training" width="90%">
+</p>
 
 **Supported Architectures:**
 | Model | Description | Best For |
