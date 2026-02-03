@@ -1,20 +1,33 @@
-# Screenshots for README
+# Assets Folder
 
-To add screenshots to this folder:
+This folder contains screenshots used in the README.md.
 
-1. Open the live app at your deployment URL
-2. Take screenshots of each page:
-   - `dashboard.png` - Main dashboard with charts
-   - `training.png` - Model training interface
-   - `portfolio.png` - Portfolio optimizer
-   - `backtesting.png` - Backtesting engine
-   - `advisor.png` - AI Trading Advisor
-   - `predictions.png` - Prediction history
+## Required Screenshots
 
-3. Save them to this `assets/` folder
-4. Push to GitHub
+Please add the following screenshots to this folder:
 
-The README.md references these images with relative paths like:
-```
-assets/dashboard.png
-```
+| Filename | Description |
+|----------|-------------|
+| `dashboard.png` | Main trading dashboard showing charts and market data |
+| `training.png` | Model training interface with configuration options |
+| `portfolio.png` | Portfolio optimizer with allocation results |
+| `backtesting.png` | Backtesting engine with performance metrics |
+| `advisor.png` | AI Trading Advisor chat interface |
+| `predictions.png` | Prediction history page |
+
+## How to Capture Screenshots
+
+1. Open your deployed Axion app
+2. Navigate to each page
+3. Take a screenshot (recommended size: 1400x900)
+4. Save with the filename listed above
+5. Commit and push to GitHub
+
+## Image Specifications
+
+- **Format:** PNG
+- **Recommended Width:** 1400px
+- **Recommended Height:** 900px
+- **File Size:** Keep under 500KB for faster loading
+
+Once the screenshots are added, the README.md will display them automatically using GitHub raw URLs.
