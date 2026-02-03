@@ -1002,6 +1002,171 @@ const Portfolio = () => {
           )}
         </TabsContent>
 
+        {/* ============ SAVED MODELS TAB ============ */}
+        <TabsContent value="models" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Deep Learning Models */}
+            <Card className="bg-card border-border border-purple-500/30">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-mono text-base flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-purple-400" />
+                    Deep Learning Models
+                  </CardTitle>
+                  <Badge className="bg-purple-500/20 text-purple-400">
+                    {savedModels.deep_learning_models?.length || 0} saved
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {savedModels.deep_learning_models?.length > 0 ? (
+                  <div className="space-y-2">
+                    {savedModels.deep_learning_models.map((model, i) => (
+                      <div 
+                        key={model.model_name}
+                        className="p-3 bg-secondary/50 rounded-lg border border-purple-500/20"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="font-mono text-sm font-semibold">{model.model_name}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {model.n_assets} assets • {model.model_params?.toLocaleString()} params
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="text-[10px]">
+                            {model.created_at}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1 border-purple-500/30"
+                            onClick={() => handleLoadModel('deep_learning', model.model_path)}
+                            disabled={loading}
+                          >
+                            <Download className="w-3 h-3 mr-1" /> Load
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                            onClick={() => handleDeleteModel('deep_learning', model.model_path)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-muted-foreground">
+                    <Brain className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No saved DL models</p>
+                    <p className="text-xs">Train and save a model first</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* RL Agent Models */}
+            <Card className="bg-card border-border border-orange-500/30">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-mono text-base flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-orange-400" />
+                    RL Agent Models
+                  </CardTitle>
+                  <Badge className="bg-orange-500/20 text-orange-400">
+                    {savedModels.rl_agent_models?.length || 0} saved
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {savedModels.rl_agent_models?.length > 0 ? (
+                  <div className="space-y-2">
+                    {savedModels.rl_agent_models.map((model, i) => (
+                      <div 
+                        key={model.model_name}
+                        className="p-3 bg-secondary/50 rounded-lg border border-orange-500/20"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="font-mono text-sm font-semibold">{model.model_name}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {model.n_assets} assets • PPO Agent
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="text-[10px]">
+                            {model.created_at}
+                          </Badge>
+                        </div>
+                        {model.training_result && (
+                          <div className="grid grid-cols-2 gap-2 mb-2 text-[10px]">
+                            <div className="bg-secondary/50 p-1 rounded text-center">
+                              <span className="text-muted-foreground">Return:</span>{' '}
+                              <span className={model.training_result.total_return > 0 ? 'text-green-400' : 'text-red-400'}>
+                                {model.training_result.total_return?.toFixed(1)}%
+                              </span>
+                            </div>
+                            <div className="bg-secondary/50 p-1 rounded text-center">
+                              <span className="text-muted-foreground">Episodes:</span>{' '}
+                              <span className="text-primary">{model.training_result.episodes}</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1 border-orange-500/30"
+                            onClick={() => handleLoadModel('rl_agent', model.model_path)}
+                            disabled={loading}
+                          >
+                            <Download className="w-3 h-3 mr-1" /> Load
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                            onClick={() => handleDeleteModel('rl_agent', model.model_path)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-muted-foreground">
+                    <Shield className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No saved RL models</p>
+                    <p className="text-xs">Train and save a model first</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Info Card */}
+          <Card className="bg-card border-border">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <FolderOpen className="w-5 h-5 text-primary mt-1" />
+                <div>
+                  <p className="font-semibold text-sm">Model Persistence</p>
+                  <p className="text-xs text-muted-foreground">
+                    Saved models are stored on disk and will persist after server restart. 
+                    Load a saved model to use it for portfolio optimization without retraining.
+                    Models are saved in <code className="bg-secondary px-1 rounded">/app/backend/saved_models/portfolio/</code>
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* ============ ANALYSIS TAB ============ */}
         <TabsContent value="analysis" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
