@@ -48,6 +48,30 @@ User wants two training modes:
         └── Settings.jsx    # API keys, exchanges
 ```
 
+## Latest Updates (Feb 5, 2026)
+
+### TCN-GNN-LSTM Architecture Proposal Notebook (Feb 5, 2026)
+- ✅ **NEW Notebook Created:** `/app/backend/tcn_gnn_lstm_architecture_proposal.ipynb`
+- ✅ **29 cells** (18 markdown, 11 code) - comprehensive architecture document
+- ✅ **Contents:**
+  - Executive Summary & Motivation
+  - Architecture Overview with detailed data flow diagrams
+  - TCN Feature Extractor (dilated causal convolutions)
+  - Graph Neural Network (GAT for dynamic asset correlations)
+  - LSTM Sequential Processor with temporal attention
+  - Multi-Head Output System (Trading, Prediction, Value)
+  - Mathematical Formulations (dilated convolution, attention)
+  - Curriculum Learning Training Strategy (3 stages)
+  - Uncertainty-Aware Prediction Pipeline
+  - Loss Function Design (Sharpe, Gaussian NLL, Value)
+  - Implementation Roadmap (8-week plan)
+  - Benefits vs. Risks Analysis
+- ✅ **Key Innovations Documented:**
+  - Uncertainty quantification via Gaussian head
+  - Dynamic correlation modeling via attention-based GNN
+  - Multi-task regularization (auxiliary prediction loss)
+  - 3-stage curriculum learning approach
+
 ## Latest Updates (Feb 4, 2026)
 
 ### Comprehensive Jupyter Notebook for Supervisor Presentation (Feb 4, 2026)
