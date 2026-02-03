@@ -81,7 +81,7 @@ Train state-of-the-art deep learning models with a visual, no-code interface.
 Multi-asset portfolio optimization with 4 distinct AI strategies.
 
 <p align="center">
-  <img src="assets/portfolio.png" alt="Portfolio" width="90%">
+  <img src="https://raw.githubusercontent.com/Soumadeep21/axion/main/assets/portfolio.png" alt="Portfolio" width="90%">
 </p>
 
 **Optimization Strategies:**
