@@ -308,7 +308,7 @@ Our novel hybrid architecture combines three powerful deep learning paradigms:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/axion.git
+git clone https://github.com/Soumadeep21/axion.git
 cd axion
 
 # Backend setup
