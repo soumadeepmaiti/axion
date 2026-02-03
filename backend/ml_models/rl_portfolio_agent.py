@@ -463,6 +463,207 @@ class RLPortfolioAgent:
             'asset_names': self.asset_names,
             'training_result': self.training_result
         }
+    
+    def save(self, save_dir: str = "/app/backend/saved_models/portfolio") -> Dict:
+        """
+        Save the trained RL agent to disk
+        
+        Args:
+            save_dir: Directory to save the model
+        
+        Returns:
+            Dictionary with save status and path
+        """
+        import os
+        import json
+        
+        if not self.is_trained or self.agent is None:
+            return {'status': 'error', 'message': 'No trained model to save'}
+        
+        try:
+            # Create directory if not exists
+            os.makedirs(save_dir, exist_ok=True)
+            
+            # Generate filename with timestamp
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            model_name = f"rl_portfolio_{timestamp}"
+            model_path = os.path.join(save_dir, model_name)
+            
+            # Save actor and critic networks
+            self.agent.actor.save(f"{model_path}_actor.keras")
+            self.agent.critic.save(f"{model_path}_critic.keras")
+            
+            # Save metadata
+            metadata = {
+                'model_type': 'rl_portfolio_agent',
+                'n_assets': len(self.asset_names),
+                'asset_names': self.asset_names,
+                'state_dim': self.agent.state_dim,
+                'action_dim': self.agent.action_dim,
+                'hidden_dim': self.agent.hidden_dim,
+                'training_result': self.training_result,
+                'created_at': timestamp
+            }
+            
+            with open(f"{model_path}_metadata.json", 'w') as f:
+                json.dump(metadata, f, indent=2)
+            
+            logger.info(f"RL Portfolio Agent saved to {model_path}")
+            
+            return {
+                'status': 'success',
+                'model_path': model_path,
+                'model_name': model_name,
+                'metadata': metadata
+            }
+            
+        except Exception as e:
+            logger.error(f"Error saving RL Portfolio Agent: {e}")
+            return {'status': 'error', 'message': str(e)}
+    
+    def load(self, model_path: str) -> Dict:
+        """
+        Load a trained RL agent from disk
+        
+        Args:
+            model_path: Path to the saved model (without extension)
+        
+        Returns:
+            Dictionary with load status
+        """
+        import os
+        import json
+        import tensorflow as tf
+        
+        try:
+            # Check if files exist
+            actor_path = f"{model_path}_actor.keras"
+            critic_path = f"{model_path}_critic.keras"
+            metadata_path = f"{model_path}_metadata.json"
+            
+            if not os.path.exists(actor_path):
+                return {'status': 'error', 'message': f'Actor model not found: {actor_path}'}
+            
+            # Load metadata first to get dimensions
+            metadata = {}
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+            
+            # Create agent with correct dimensions
+            state_dim = metadata.get('state_dim', 100)
+            action_dim = metadata.get('action_dim', 20)
+            hidden_dim = metadata.get('hidden_dim', 128)
+            
+            self.agent = PPOPortfolioAgent(
+                state_dim=state_dim,
+                action_dim=action_dim,
+                hidden_dim=hidden_dim
+            )
+            
+            # Load actor and critic
+            self.agent.actor = tf.keras.models.load_model(actor_path, compile=False)
+            self.agent.actor.compile(optimizer=tf.keras.optimizers.Adam(self.agent.lr))
+            
+            if os.path.exists(critic_path):
+                self.agent.critic = tf.keras.models.load_model(critic_path, compile=False)
+                self.agent.critic.compile(
+                    optimizer=tf.keras.optimizers.Adam(self.agent.lr),
+                    loss='mse'
+                )
+            
+            # Restore metadata
+            self.asset_names = metadata.get('asset_names', [])
+            self.training_result = metadata.get('training_result')
+            self.is_trained = True
+            
+            logger.info(f"RL Portfolio Agent loaded from {model_path}")
+            
+            return {
+                'status': 'success',
+                'model_path': model_path,
+                'n_assets': len(self.asset_names),
+                'asset_names': self.asset_names
+            }
+            
+        except Exception as e:
+            logger.error(f"Error loading RL Portfolio Agent: {e}")
+            return {'status': 'error', 'message': str(e)}
+    
+    @staticmethod
+    def list_saved_models(save_dir: str = "/app/backend/saved_models/portfolio") -> List[Dict]:
+        """
+        List all saved RL Portfolio models
+        
+        Returns:
+            List of model metadata dictionaries
+        """
+        import os
+        import json
+        
+        models = []
+        
+        if not os.path.exists(save_dir):
+            return models
+        
+        for filename in os.listdir(save_dir):
+            if filename.startswith("rl_portfolio_") and filename.endswith("_metadata.json"):
+                try:
+                    with open(os.path.join(save_dir, filename), 'r') as f:
+                        metadata = json.load(f)
+                    
+                    model_name = filename.replace("_metadata.json", "")
+                    metadata['model_name'] = model_name
+                    metadata['model_path'] = os.path.join(save_dir, model_name)
+                    models.append(metadata)
+                    
+                except Exception as e:
+                    logger.error(f"Error reading metadata {filename}: {e}")
+        
+        # Sort by creation date (newest first)
+        models.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        return models
+    
+    @staticmethod
+    def delete_model(model_path: str) -> Dict:
+        """
+        Delete a saved RL model
+        
+        Args:
+            model_path: Path to the model (without extension)
+        
+        Returns:
+            Dictionary with delete status
+        """
+        import os
+        
+        try:
+            files_deleted = []
+            
+            # Delete all related files
+            extensions = ['_actor.keras', '_critic.keras', '_metadata.json']
+            for ext in extensions:
+                filepath = f"{model_path}{ext}"
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    files_deleted.append(filepath)
+            
+            if files_deleted:
+                logger.info(f"Deleted RL Portfolio model: {model_path}")
+                return {
+                    'status': 'success',
+                    'files_deleted': files_deleted
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'message': 'No files found to delete'
+                }
+                
+        except Exception as e:
+            logger.error(f"Error deleting model: {e}")
+            return {'status': 'error', 'message': str(e)}
 
 
 # Singleton instance
