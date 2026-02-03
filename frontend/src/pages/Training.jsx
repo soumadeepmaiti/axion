@@ -1224,6 +1224,104 @@ const Training = () => {
             </Card>
           </div>
 
+          {/* Portfolio Allocation Training */}
+          <Card className="bg-card border-border border-purple-500/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-mono text-base flex items-center gap-2">
+                <Target className="w-4 h-4 text-purple-400" />
+                Portfolio Allocation Models
+                {(portfolioModelInfo?.deep_learning_trained || portfolioModelInfo?.rl_agent_trained) && (
+                  <Badge className="bg-purple-500/20 text-purple-400 ml-2">
+                    {[
+                      portfolioModelInfo?.deep_learning_trained ? 'DL' : '',
+                      portfolioModelInfo?.rl_agent_trained ? 'RL' : ''
+                    ].filter(Boolean).join(' + ')} Trained
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Train AI models to optimize portfolio allocation across multiple assets for maximum profit with minimum risk.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {/* Deep Learning Portfolio */}
+                <div className={`p-4 rounded-lg border ${
+                  portfolioModelInfo?.deep_learning_trained 
+                    ? 'border-purple-500/50 bg-purple-500/10' 
+                    : 'border-border bg-secondary/30'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">🧠</span>
+                    <div>
+                      <p className="font-mono text-sm font-semibold">Deep Learning Portfolio</p>
+                      <p className="text-xs text-muted-foreground">LSTM + Attention → Optimal weights</p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleTrainPortfolioDL}
+                    disabled={dlTraining || isTraining}
+                    className={`w-full mt-2 ${portfolioModelInfo?.deep_learning_trained ? 'bg-purple-600/50' : 'bg-purple-600'}`}
+                    size="sm"
+                  >
+                    {dlTraining ? (
+                      <><RefreshCw className="w-3 h-3 mr-1 animate-spin" /> Training...</>
+                    ) : portfolioModelInfo?.deep_learning_trained ? (
+                      <><Zap className="w-3 h-3 mr-1" /> Retrain DL</>
+                    ) : (
+                      <><Play className="w-3 h-3 mr-1" /> Train DL Model</>
+                    )}
+                  </Button>
+                </div>
+
+                {/* RL Portfolio Agent */}
+                <div className={`p-4 rounded-lg border ${
+                  portfolioModelInfo?.rl_agent_trained 
+                    ? 'border-orange-500/50 bg-orange-500/10' 
+                    : 'border-border bg-secondary/30'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">🤖</span>
+                    <div>
+                      <p className="font-mono text-sm font-semibold">RL Portfolio Agent</p>
+                      <p className="text-xs text-muted-foreground">PPO learns optimal rebalancing</p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleTrainPortfolioRL}
+                    disabled={rlAgentTraining || isTraining}
+                    className={`w-full mt-2 ${portfolioModelInfo?.rl_agent_trained ? 'bg-orange-600/50' : 'bg-orange-600'}`}
+                    size="sm"
+                  >
+                    {rlAgentTraining ? (
+                      <><RefreshCw className="w-3 h-3 mr-1 animate-spin" /> Training...</>
+                    ) : portfolioModelInfo?.rl_agent_trained ? (
+                      <><Zap className="w-3 h-3 mr-1" /> Retrain RL</>
+                    ) : (
+                      <><Play className="w-3 h-3 mr-1" /> Train RL Agent</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Portfolio Assets */}
+              <div className="p-3 bg-secondary/30 rounded-lg">
+                <p className="text-xs font-mono text-muted-foreground mb-2">Training Assets:</p>
+                <div className="flex flex-wrap gap-1">
+                  {portfolioAssets.map(asset => (
+                    <Badge key={asset} variant="outline" className="text-xs">
+                      {asset.replace('/USDT', '')}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  These models predict how to allocate your investment across multiple cryptocurrencies for optimal returns.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* RL Configuration - Only shown when RL model is selected */}
           {networkType.startsWith('rl_') && (
             <Card className="bg-card border-border border-primary/50">
