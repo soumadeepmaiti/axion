@@ -158,7 +158,7 @@ Interactive AI assistant powered by LLMs for market analysis and trading guidanc
 Track and analyze all AI predictions with confidence metrics.
 
 <p align="center">
-  <img src="assets/predictions.png" alt="Predictions" width="90%">
+  <img src="https://raw.githubusercontent.com/Soumadeep21/axion/main/assets/predictions.png" alt="Predictions" width="90%">
 </p>
 
 **Tracked Metrics:**
