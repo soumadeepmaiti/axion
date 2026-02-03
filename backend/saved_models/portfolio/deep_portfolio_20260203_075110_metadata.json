@@ -1,0 +1,13 @@
+{
+  "model_type": "deep_portfolio_network",
+  "n_assets": 3,
+  "lookback": 30,
+  "feature_dim": 15,
+  "asset_names": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT"
+  ],
+  "created_at": "20260203_075110",
+  "model_params": 142915
+}
