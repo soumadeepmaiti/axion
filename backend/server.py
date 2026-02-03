@@ -1274,6 +1274,99 @@ async def train_portfolio_model(request: PortfolioModelTrainRequest, background_
         logger.error(f"Portfolio model training error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class PortfolioModelSaveRequest(BaseModel):
+    model_type: str  # 'deep_learning' or 'rl_agent'
+
+class PortfolioModelLoadRequest(BaseModel):
+    model_type: str  # 'deep_learning' or 'rl_agent'
+    model_path: str
+
+class PortfolioModelDeleteRequest(BaseModel):
+    model_type: str  # 'deep_learning' or 'rl_agent'
+    model_path: str
+
+@api_router.post("/portfolio/models/save")
+async def save_portfolio_model(request: PortfolioModelSaveRequest):
+    """Save a trained portfolio model to disk"""
+    try:
+        if request.model_type == 'deep_learning':
+            if not portfolio_optimizer.deep_learning_trained:
+                return {"status": "error", "message": "No trained Deep Learning model to save"}
+            result = portfolio_optimizer.deep_network.save()
+        elif request.model_type == 'rl_agent':
+            if not portfolio_optimizer.rl_agent_trained:
+                return {"status": "error", "message": "No trained RL Agent model to save"}
+            result = portfolio_optimizer.rl_agent.save()
+        else:
+            return {"status": "error", "message": f"Unknown model type: {request.model_type}"}
+        
+        return sanitize_value(result)
+        
+    except Exception as e:
+        logger.error(f"Portfolio model save error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/portfolio/models/load")
+async def load_portfolio_model(request: PortfolioModelLoadRequest):
+    """Load a saved portfolio model from disk"""
+    try:
+        if request.model_type == 'deep_learning':
+            result = portfolio_optimizer.deep_network.load(request.model_path)
+            if result.get('status') == 'success':
+                portfolio_optimizer.deep_learning_trained = True
+        elif request.model_type == 'rl_agent':
+            result = portfolio_optimizer.rl_agent.load(request.model_path)
+            if result.get('status') == 'success':
+                portfolio_optimizer.rl_agent_trained = True
+        else:
+            return {"status": "error", "message": f"Unknown model type: {request.model_type}"}
+        
+        return sanitize_value(result)
+        
+    except Exception as e:
+        logger.error(f"Portfolio model load error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/portfolio/models/delete")
+async def delete_portfolio_model(request: PortfolioModelDeleteRequest):
+    """Delete a saved portfolio model from disk"""
+    try:
+        from ml_models.deep_portfolio_network import DeepPortfolioNetwork
+        from ml_models.rl_portfolio_agent import RLPortfolioAgent
+        
+        if request.model_type == 'deep_learning':
+            result = DeepPortfolioNetwork.delete_model(request.model_path)
+        elif request.model_type == 'rl_agent':
+            result = RLPortfolioAgent.delete_model(request.model_path)
+        else:
+            return {"status": "error", "message": f"Unknown model type: {request.model_type}"}
+        
+        return sanitize_value(result)
+        
+    except Exception as e:
+        logger.error(f"Portfolio model delete error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/portfolio/models/list")
+async def list_portfolio_models():
+    """List all saved portfolio models"""
+    try:
+        from ml_models.deep_portfolio_network import DeepPortfolioNetwork
+        from ml_models.rl_portfolio_agent import RLPortfolioAgent
+        
+        dl_models = DeepPortfolioNetwork.list_saved_models()
+        rl_models = RLPortfolioAgent.list_saved_models()
+        
+        return sanitize_value({
+            "deep_learning_models": dl_models,
+            "rl_agent_models": rl_models,
+            "total_models": len(dl_models) + len(rl_models)
+        })
+        
+    except Exception as e:
+        logger.error(f"Portfolio model list error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/portfolio/optimize")
 async def optimize_portfolio(request: PortfolioOptimizeRequest):
     """Optimize portfolio allocation"""
