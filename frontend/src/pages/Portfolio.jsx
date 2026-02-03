@@ -66,10 +66,15 @@ const Portfolio = () => {
   const [modelInfo, setModelInfo] = useState(null);
   const [dlTraining, setDlTraining] = useState(false);
   const [rlTraining, setRlTraining] = useState(false);
+  
+  // Saved Models
+  const [savedModels, setSavedModels] = useState({ deep_learning_models: [], rl_agent_models: [] });
+  const [savingModel, setSavingModel] = useState(false);
 
   // Fetch initial data
   useEffect(() => {
     fetchModelInfo();
+    fetchSavedModels();
   }, []);
 
   const fetchModelInfo = async () => {
@@ -81,6 +86,15 @@ const Portfolio = () => {
     }
   };
 
+  const fetchSavedModels = async () => {
+    try {
+      const response = await API.get('/portfolio/models/list');
+      setSavedModels(response.data);
+    } catch (error) {
+      console.error("Error fetching saved models:", error);
+    }
+  };
+
   const fetchTrainingStatus = async () => {
     try {
       const response = await API.get('/portfolio/training-status');
@@ -89,6 +103,70 @@ const Portfolio = () => {
     } catch (error) {
       console.error("Error fetching training status:", error);
       return null;
+    }
+  };
+
+  // Save Model
+  const handleSaveModel = async (modelType) => {
+    setSavingModel(true);
+    try {
+      const response = await API.post('/portfolio/models/save', {
+        model_type: modelType
+      });
+      
+      if (response.data.status === 'success') {
+        toast.success(`${modelType === 'deep_learning' ? 'DL' : 'RL'} model saved!`);
+        fetchSavedModels();
+      } else {
+        toast.error(response.data.message || "Save failed");
+      }
+    } catch (error) {
+      toast.error("Failed to save model");
+    } finally {
+      setSavingModel(false);
+    }
+  };
+
+  // Load Model
+  const handleLoadModel = async (modelType, modelPath) => {
+    setLoading(true);
+    try {
+      const response = await API.post('/portfolio/models/load', {
+        model_type: modelType,
+        model_path: modelPath
+      });
+      
+      if (response.data.status === 'success') {
+        toast.success(`${modelType === 'deep_learning' ? 'DL' : 'RL'} model loaded!`);
+        fetchModelInfo();
+      } else {
+        toast.error(response.data.message || "Load failed");
+      }
+    } catch (error) {
+      toast.error("Failed to load model");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete Model
+  const handleDeleteModel = async (modelType, modelPath) => {
+    if (!confirm("Are you sure you want to delete this model?")) return;
+    
+    try {
+      const response = await API.post('/portfolio/models/delete', {
+        model_type: modelType,
+        model_path: modelPath
+      });
+      
+      if (response.data.status === 'success') {
+        toast.success("Model deleted");
+        fetchSavedModels();
+      } else {
+        toast.error(response.data.message || "Delete failed");
+      }
+    } catch (error) {
+      toast.error("Failed to delete model");
     }
   };
 
