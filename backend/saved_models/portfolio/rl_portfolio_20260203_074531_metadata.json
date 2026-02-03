@@ -1,0 +1,20 @@
+{
+  "model_type": "rl_portfolio_agent",
+  "n_assets": 3,
+  "asset_names": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT"
+  ],
+  "state_dim": 18,
+  "action_dim": 3,
+  "hidden_dim": 128,
+  "training_result": {
+    "status": "success",
+    "episodes": 10,
+    "final_avg_reward": -1.541511779070717,
+    "final_portfolio_value": 6169.3629415375235,
+    "total_return": -38.30637058462476
+  },
+  "created_at": "20260203_074531"
+}
