@@ -577,8 +577,33 @@ const Portfolio = () => {
                       {modelInfo?.rl_agent_trained ? "RL Trained ✓" : "Train RL Agent"}
                     </Button>
                   </div>
+                  
+                  {/* Save Buttons */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      onClick={() => handleSaveModel('deep_learning')} 
+                      disabled={!modelInfo?.deep_learning_trained || savingModel}
+                      variant="outline"
+                      size="sm"
+                      className="border-purple-500/30"
+                    >
+                      <Save className="w-3 h-3 mr-1" />
+                      Save DL
+                    </Button>
+                    <Button 
+                      onClick={() => handleSaveModel('rl_agent')} 
+                      disabled={!modelInfo?.rl_agent_trained || savingModel}
+                      variant="outline"
+                      size="sm"
+                      className="border-orange-500/30"
+                    >
+                      <Save className="w-3 h-3 mr-1" />
+                      Save RL
+                    </Button>
+                  </div>
+                  
                   <p className="text-[10px] text-muted-foreground">
-                    Train Deep Learning and RL models for better portfolio optimization
+                    Train and save models for future use. Saved models persist after server restart.
                   </p>
                 </div>
                 
