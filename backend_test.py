@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 class HybridTradingAPITester:
-    def __init__(self, base_url="https://deeptradehub.preview.emergentagent.com"):
+    def __init__(self, base_url="https://aiopttrade.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
