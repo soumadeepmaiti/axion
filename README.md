@@ -118,7 +118,9 @@ Multi-asset portfolio optimization with 4 distinct AI strategies.
 ### 📈 Backtesting Engine
 Comprehensive strategy backtesting with detailed performance analytics.
 
-![Backtesting](assets/backtesting.png)
+<p align="center">
+  <img src="assets/backtesting.png" alt="Backtesting" width="90%">
+</p>
 
 **Features:**
 - Historical data simulation
