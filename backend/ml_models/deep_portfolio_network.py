@@ -331,6 +331,201 @@ class DeepPortfolioNetwork:
             'asset_names': self.asset_names,
             'model_params': self.model.count_params() if self.model else 0
         }
+    
+    def save(self, save_dir: str = "/app/backend/saved_models/portfolio") -> Dict:
+        """
+        Save the trained model to disk
+        
+        Args:
+            save_dir: Directory to save the model
+        
+        Returns:
+            Dictionary with save status and path
+        """
+        import os
+        import json
+        import joblib
+        
+        if not self.is_trained or self.model is None:
+            return {'status': 'error', 'message': 'No trained model to save'}
+        
+        try:
+            # Create directory if not exists
+            os.makedirs(save_dir, exist_ok=True)
+            
+            # Generate filename with timestamp
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            model_name = f"deep_portfolio_{timestamp}"
+            model_path = os.path.join(save_dir, model_name)
+            
+            # Save Keras model
+            self.model.save(f"{model_path}.keras")
+            
+            # Save metadata and scaler
+            metadata = {
+                'model_type': 'deep_portfolio_network',
+                'n_assets': self.n_assets,
+                'lookback': self.lookback,
+                'feature_dim': self.feature_dim,
+                'asset_names': self.asset_names,
+                'created_at': timestamp,
+                'model_params': self.model.count_params()
+            }
+            
+            with open(f"{model_path}_metadata.json", 'w') as f:
+                json.dump(metadata, f, indent=2)
+            
+            if self.scaler is not None:
+                joblib.dump(self.scaler, f"{model_path}_scaler.joblib")
+            
+            logger.info(f"Deep Portfolio Network saved to {model_path}")
+            
+            return {
+                'status': 'success',
+                'model_path': model_path,
+                'model_name': model_name,
+                'metadata': metadata
+            }
+            
+        except Exception as e:
+            logger.error(f"Error saving Deep Portfolio Network: {e}")
+            return {'status': 'error', 'message': str(e)}
+    
+    def load(self, model_path: str) -> Dict:
+        """
+        Load a trained model from disk
+        
+        Args:
+            model_path: Path to the saved model (without extension)
+        
+        Returns:
+            Dictionary with load status
+        """
+        import os
+        import json
+        import joblib
+        import tensorflow as tf
+        
+        try:
+            # Load Keras model
+            keras_path = f"{model_path}.keras"
+            if not os.path.exists(keras_path):
+                return {'status': 'error', 'message': f'Model file not found: {keras_path}'}
+            
+            self.model = tf.keras.models.load_model(keras_path, compile=False)
+            
+            # Recompile with custom loss
+            self.model.compile(
+                optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+                loss=self._sharpe_loss,
+                metrics=['mae']
+            )
+            
+            # Load metadata
+            metadata_path = f"{model_path}_metadata.json"
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+                
+                self.n_assets = metadata.get('n_assets', 20)
+                self.lookback = metadata.get('lookback', 30)
+                self.feature_dim = metadata.get('feature_dim', 0)
+                self.asset_names = metadata.get('asset_names', [])
+            
+            # Load scaler
+            scaler_path = f"{model_path}_scaler.joblib"
+            if os.path.exists(scaler_path):
+                self.scaler = joblib.load(scaler_path)
+            
+            self.is_trained = True
+            
+            logger.info(f"Deep Portfolio Network loaded from {model_path}")
+            
+            return {
+                'status': 'success',
+                'model_path': model_path,
+                'n_assets': self.n_assets,
+                'asset_names': self.asset_names
+            }
+            
+        except Exception as e:
+            logger.error(f"Error loading Deep Portfolio Network: {e}")
+            return {'status': 'error', 'message': str(e)}
+    
+    @staticmethod
+    def list_saved_models(save_dir: str = "/app/backend/saved_models/portfolio") -> List[Dict]:
+        """
+        List all saved Deep Portfolio models
+        
+        Returns:
+            List of model metadata dictionaries
+        """
+        import os
+        import json
+        
+        models = []
+        
+        if not os.path.exists(save_dir):
+            return models
+        
+        for filename in os.listdir(save_dir):
+            if filename.startswith("deep_portfolio_") and filename.endswith("_metadata.json"):
+                try:
+                    with open(os.path.join(save_dir, filename), 'r') as f:
+                        metadata = json.load(f)
+                    
+                    model_name = filename.replace("_metadata.json", "")
+                    metadata['model_name'] = model_name
+                    metadata['model_path'] = os.path.join(save_dir, model_name)
+                    models.append(metadata)
+                    
+                except Exception as e:
+                    logger.error(f"Error reading metadata {filename}: {e}")
+        
+        # Sort by creation date (newest first)
+        models.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        return models
+    
+    @staticmethod
+    def delete_model(model_path: str) -> Dict:
+        """
+        Delete a saved model
+        
+        Args:
+            model_path: Path to the model (without extension)
+        
+        Returns:
+            Dictionary with delete status
+        """
+        import os
+        
+        try:
+            files_deleted = []
+            
+            # Delete all related files
+            extensions = ['.keras', '_metadata.json', '_scaler.joblib']
+            for ext in extensions:
+                filepath = f"{model_path}{ext}"
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    files_deleted.append(filepath)
+            
+            if files_deleted:
+                logger.info(f"Deleted Deep Portfolio model: {model_path}")
+                return {
+                    'status': 'success',
+                    'files_deleted': files_deleted
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'message': 'No files found to delete'
+                }
+                
+        except Exception as e:
+            logger.error(f"Error deleting model: {e}")
+            return {'status': 'error', 'message': str(e)}
 
 
 # Singleton instance
