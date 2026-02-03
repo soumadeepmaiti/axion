@@ -39,7 +39,7 @@
 Real-time market monitoring with live price feeds, sentiment analysis, volume tracking, and AI-powered predictions.
 
 <p align="center">
-  <img src="assets/dashboard.png" alt="Dashboard" width="90%">
+  <img src="https://raw.githubusercontent.com/Soumadeep21/axion/main/assets/dashboard.png" alt="Dashboard" width="90%">
 </p>
 
 **Key Features:**
