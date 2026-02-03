@@ -417,6 +417,191 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Portfolio Allocation & Multi-Asset Predictions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Portfolio Allocation Widget */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="font-mono text-lg flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-primary" />
+                Optimal Allocation
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/portfolio')}
+                className="text-xs"
+              >
+                Full Analysis <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">AI-recommended portfolio for $1,000 investment</p>
+          </CardHeader>
+          <CardContent>
+            {portfolioLoading ? (
+              <div className="h-48 flex items-center justify-center">
+                <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : allocationChartData.length > 0 ? (
+              <div className="flex items-center gap-4">
+                <div className="w-1/2">
+                  <ResponsiveContainer width="100%" height={160}>
+                    <PieChart>
+                      <Pie
+                        data={allocationChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={70}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {allocationChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value, name, props) => [
+                          `${value}% ($${props.payload.amount})`,
+                          props.payload.name
+                        ]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="w-1/2 space-y-2">
+                  {allocationChartData.slice(0, 5).map((item, i) => (
+                    <div key={item.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-xs font-mono">{item.name}</span>
+                      </div>
+                      <span className="text-xs font-mono text-muted-foreground">{item.value}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="h-48 flex items-center justify-center text-muted-foreground">
+                <p className="text-sm">Click refresh to load allocation</p>
+              </div>
+            )}
+            
+            {/* Portfolio Metrics */}
+            {portfolioAllocation?.metrics && (
+              <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-border">
+                <div className="text-center">
+                  <p className={`text-lg font-mono font-bold ${
+                    portfolioAllocation.metrics.expected_return > 0 ? 'text-success' : 'text-destructive'
+                  }`}>
+                    {portfolioAllocation.metrics.expected_return > 0 ? '+' : ''}
+                    {portfolioAllocation.metrics.expected_return}%
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Expected Return</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-mono font-bold text-warning">
+                    {portfolioAllocation.metrics.volatility}%
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Risk</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-mono font-bold text-primary">
+                    {portfolioAllocation.metrics.sharpe_ratio}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Sharpe</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Multi-Asset Predictions */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="font-mono text-lg flex items-center gap-2">
+                <Brain className="w-5 h-5 text-primary" />
+                Multi-Asset Signals
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={fetchPortfolioAllocation}
+                disabled={portfolioLoading}
+              >
+                <RefreshCw className={`w-3 h-3 ${portfolioLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">AI predictions for top assets</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {multiAssetPredictions.length > 0 ? (
+                multiAssetPredictions.map((asset, i) => (
+                  <div 
+                    key={asset.symbol}
+                    className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span className="text-xs font-mono font-bold">{asset.symbol.slice(0, 2)}</span>
+                      </div>
+                      <div>
+                        <p className="font-mono font-semibold text-sm">{asset.symbol}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Allocation: {asset.weight}%
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Badge 
+                        className={`${
+                          asset.direction === 'UP' 
+                            ? 'bg-success/20 text-success' 
+                            : 'bg-destructive/20 text-destructive'
+                        }`}
+                      >
+                        {asset.direction === 'UP' ? (
+                          <TrendingUp className="w-3 h-3 mr-1" />
+                        ) : (
+                          <TrendingDown className="w-3 h-3 mr-1" />
+                        )}
+                        {asset.direction}
+                      </Badge>
+                      <p className={`text-xs font-mono mt-1 ${
+                        asset.expected_return > 0 ? 'text-success' : 'text-destructive'
+                      }`}>
+                        {asset.expected_return > 0 ? '+' : ''}{asset.expected_return}%
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  <Brain className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Loading predictions...</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Action Button */}
+            <Button 
+              className="w-full mt-4" 
+              variant="outline"
+              onClick={() => navigate('/portfolio')}
+            >
+              <PieChartIcon className="w-4 h-4 mr-2" />
+              Open Portfolio Optimizer
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
