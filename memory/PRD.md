@@ -1,4 +1,4 @@
-# Omni-Crypto Hybrid Deep Learning Trading System
+# Axion Hybrid Deep Learning Trading System
 
 ## Original Problem Statement
 Build a Multi-Input Hybrid Deep Learning System for crypto trading using Late Fusion strategy combining:
