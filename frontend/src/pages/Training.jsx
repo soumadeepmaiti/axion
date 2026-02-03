@@ -151,6 +151,15 @@ const Training = () => {
   const [rlEpisodes, setRlEpisodes] = useState(100);
   const [rlGamma, setRlGamma] = useState(0.99);
   
+  // Portfolio Training Config
+  const [trainPortfolioModels, setTrainPortfolioModels] = useState(false);
+  const [portfolioAssets, setPortfolioAssets] = useState([
+    "BTC/USDT", "ETH/USDT", "BNB/USDT", "SOL/USDT", "XRP/USDT"
+  ]);
+  const [portfolioModelInfo, setPortfolioModelInfo] = useState(null);
+  const [dlTraining, setDlTraining] = useState(false);
+  const [rlAgentTraining, setRlAgentTraining] = useState(false);
+  
   // Status
   const [trainingStatus, setTrainingStatus] = useState(null);
   const [trainingHistory, setTrainingHistory] = useState([]);
@@ -189,12 +198,99 @@ const Training = () => {
     }
   }, []);
 
+  const fetchPortfolioModelInfo = useCallback(async () => {
+    try {
+      const response = await API.get('/portfolio/model-info');
+      setPortfolioModelInfo(response.data);
+    } catch (error) {
+      console.error("Error fetching portfolio model info:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchHistory();
     fetchStatus();
     fetchSavedModels();
     fetchExchangeStatus();
-  }, [fetchHistory, fetchStatus, fetchSavedModels]);
+    fetchPortfolioModelInfo();
+  }, [fetchHistory, fetchStatus, fetchSavedModels, fetchPortfolioModelInfo]);
+
+  // Train Portfolio Deep Learning
+  const handleTrainPortfolioDL = async () => {
+    setDlTraining(true);
+    try {
+      // First fetch data
+      await API.post('/portfolio/fetch-data', {
+        assets: portfolioAssets,
+        timeframe: '1d'
+      });
+      
+      // Then train
+      const response = await API.post('/portfolio/train-model', {
+        model_type: 'deep_learning',
+        epochs: 100
+      });
+      
+      if (response.data.status === 'started') {
+        toast.success("Portfolio DL training started");
+        // Poll for completion
+        const pollInterval = setInterval(async () => {
+          await fetchPortfolioModelInfo();
+          if (portfolioModelInfo?.deep_learning_trained) {
+            clearInterval(pollInterval);
+            setDlTraining(false);
+            toast.success("Portfolio DL model trained!");
+          }
+        }, 3000);
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setDlTraining(false);
+          fetchPortfolioModelInfo();
+        }, 180000);
+      }
+    } catch (error) {
+      toast.error("Portfolio DL training failed");
+      setDlTraining(false);
+    }
+  };
+
+  // Train Portfolio RL Agent
+  const handleTrainPortfolioRL = async () => {
+    setRlAgentTraining(true);
+    try {
+      // First fetch data
+      await API.post('/portfolio/fetch-data', {
+        assets: portfolioAssets,
+        timeframe: '1d'
+      });
+      
+      // Then train
+      const response = await API.post('/portfolio/train-model', {
+        model_type: 'rl_agent',
+        n_episodes: 50
+      });
+      
+      if (response.data.status === 'started') {
+        toast.success("Portfolio RL Agent training started");
+        const pollInterval = setInterval(async () => {
+          await fetchPortfolioModelInfo();
+          if (portfolioModelInfo?.rl_agent_trained) {
+            clearInterval(pollInterval);
+            setRlAgentTraining(false);
+            toast.success("Portfolio RL Agent trained!");
+          }
+        }, 3000);
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setRlAgentTraining(false);
+          fetchPortfolioModelInfo();
+        }, 180000);
+      }
+    } catch (error) {
+      toast.error("Portfolio RL training failed");
+      setRlAgentTraining(false);
+    }
+  };
 
   // Fetch exchange status
   const fetchExchangeStatus = useCallback(async () => {
