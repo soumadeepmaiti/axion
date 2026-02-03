@@ -137,7 +137,7 @@ Comprehensive strategy backtesting with detailed performance analytics.
 Interactive AI assistant powered by LLMs for market analysis and trading guidance.
 
 <p align="center">
-  <img src="assets/advisor.png" alt="AI Advisor" width="90%">
+  <img src="https://raw.githubusercontent.com/Soumadeep21/axion/main/assets/advisor.png" alt="AI Advisor" width="90%">
 </p>
 
 **Capabilities:**
