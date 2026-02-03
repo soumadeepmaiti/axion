@@ -119,7 +119,7 @@ Multi-asset portfolio optimization with 4 distinct AI strategies.
 Comprehensive strategy backtesting with detailed performance analytics.
 
 <p align="center">
-  <img src="assets/backtesting.png" alt="Backtesting" width="90%">
+  <img src="https://raw.githubusercontent.com/Soumadeep21/axion/main/assets/backtesting.png" alt="Backtesting" width="90%">
 </p>
 
 **Features:**
