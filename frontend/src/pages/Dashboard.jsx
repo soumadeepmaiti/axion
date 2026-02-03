@@ -4,18 +4,25 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area, BarChart, Bar
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell
 } from "recharts";
 import {
   TrendingUp, TrendingDown, RefreshCw, Brain, Activity,
-  Zap, Target, Shield, Clock, DollarSign, BarChart3
+  Zap, Target, Shield, Clock, DollarSign, BarChart3, Wallet,
+  PieChart as PieChartIcon, ArrowRight
 } from "lucide-react";
-import { getMarketData, makePrediction, getDashboardStats, getAggregateSentiment } from "@/lib/api";
+import { getMarketData, makePrediction, getDashboardStats, getAggregateSentiment, API } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
+
+// Colors for allocation chart
+const COLORS = ['#00d4aa', '#00a8cc', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [symbol, setSymbol] = useState("BTC/USDT");
   const [timeframe, setTimeframe] = useState("5m");
   const [marketData, setMarketData] = useState([]);
@@ -24,6 +31,11 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [predicting, setPredicting] = useState(false);
+  
+  // Portfolio state
+  const [portfolioAllocation, setPortfolioAllocation] = useState(null);
+  const [multiAssetPredictions, setMultiAssetPredictions] = useState([]);
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -45,11 +57,54 @@ const Dashboard = () => {
     }
   }, [symbol, timeframe]);
 
+  // Fetch portfolio allocation
+  const fetchPortfolioAllocation = useCallback(async () => {
+    setPortfolioLoading(true);
+    try {
+      // First fetch data for top assets
+      const topAssets = ["BTC/USDT", "ETH/USDT", "BNB/USDT", "SOL/USDT", "XRP/USDT"];
+      
+      await API.post('/portfolio/fetch-data', {
+        assets: topAssets,
+        timeframe: '1d'
+      });
+      
+      // Then get quick optimization
+      const optimizeRes = await API.post('/portfolio/optimize', {
+        assets: topAssets,
+        investment_amount: 1000,
+        strategy: 'traditional_ml',
+        objective: 'max_sharpe',
+        horizon: '7d',
+        compare_all: false,
+        constraints: { max_weight: 40, min_assets: 3 }
+      });
+      
+      if (optimizeRes.data.status === 'success') {
+        setPortfolioAllocation(optimizeRes.data);
+        
+        // Create multi-asset predictions from allocations
+        const predictions = optimizeRes.data.allocations?.map(a => ({
+          symbol: a.symbol.replace('/USDT', ''),
+          weight: a.weight,
+          expected_return: a.expected_return,
+          direction: a.expected_return > 0 ? 'UP' : 'DOWN'
+        })) || [];
+        setMultiAssetPredictions(predictions);
+      }
+    } catch (error) {
+      console.error("Portfolio fetch error:", error);
+    } finally {
+      setPortfolioLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
+    fetchPortfolioAllocation();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, [fetchData, fetchPortfolioAllocation]);
 
   const handlePredict = async () => {
     setPredicting(true);
@@ -69,6 +124,14 @@ const Dashboard = () => {
   const priceChange = marketData.length > 1 
     ? ((marketData[marketData.length - 1]?.close - marketData[marketData.length - 2]?.close) / marketData[marketData.length - 2]?.close * 100).toFixed(2)
     : 0;
+
+  // Prepare allocation data for pie chart
+  const allocationChartData = portfolioAllocation?.allocations?.map((a, i) => ({
+    name: a.symbol.replace('/USDT', ''),
+    value: a.weight,
+    amount: a.amount,
+    color: COLORS[i % COLORS.length]
+  })) || [];
 
   return (
     <div data-testid="dashboard-page" className="p-6 space-y-6 noise-overlay">
