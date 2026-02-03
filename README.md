@@ -157,7 +157,9 @@ Interactive AI assistant powered by LLMs for market analysis and trading guidanc
 ### 📉 Prediction History
 Track and analyze all AI predictions with confidence metrics.
 
-![Predictions](assets/predictions.png)
+<p align="center">
+  <img src="assets/predictions.png" alt="Predictions" width="90%">
+</p>
 
 **Tracked Metrics:**
 - Prediction direction (LONG/SHORT)
