@@ -454,7 +454,7 @@ const Portfolio = () => {
       </div>
 
       <Tabs defaultValue="config" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="config" className="gap-2">
             <Settings className="w-4 h-4" /> Configuration
           </TabsTrigger>
@@ -463,6 +463,9 @@ const Portfolio = () => {
           </TabsTrigger>
           <TabsTrigger value="compare" className="gap-2">
             <GitCompare className="w-4 h-4" /> Compare
+          </TabsTrigger>
+          <TabsTrigger value="models" className="gap-2">
+            <FolderOpen className="w-4 h-4" /> Saved Models
           </TabsTrigger>
           <TabsTrigger value="analysis" className="gap-2">
             <BarChart3 className="w-4 h-4" /> Analysis
