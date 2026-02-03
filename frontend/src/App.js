@@ -43,9 +43,9 @@ const Sidebar = () => {
           </div>
           <div>
             <h1 className="text-lg font-bold text-foreground font-mono tracking-tight">
-              OMNI<span className="text-primary">CRYPTO</span>
+              <span className="text-primary">⚡</span> AXION
             </h1>
-            <p className="text-xs text-muted-foreground">Hybrid AI Trading</p>
+            <p className="text-xs text-muted-foreground">Allocate with Intelligence</p>
           </div>
         </div>
       </div>
