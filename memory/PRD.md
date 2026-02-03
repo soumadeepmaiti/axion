@@ -50,6 +50,30 @@ User wants two training modes:
 
 ## Latest Updates (Feb 3, 2026)
 
+### Model Persistence - Save/Load/Delete (Feb 3, 2026)
+- ✅ **Deep Learning Models:**
+  - `save()` - Saves .keras model + metadata.json + scaler.joblib
+  - `load()` - Loads model with custom Sharpe loss function
+  - `list_saved_models()` - Lists all saved DL models
+  - `delete_model()` - Removes model files from disk
+- ✅ **RL Agent Models:**
+  - `save()` - Saves actor.keras + critic.keras + metadata.json
+  - `load()` - Restores PPO agent with correct dimensions
+  - `list_saved_models()` - Lists all saved RL models
+  - `delete_model()` - Removes model files from disk
+- ✅ **API Endpoints:**
+  - `POST /api/portfolio/models/save` - Save current model
+  - `POST /api/portfolio/models/load` - Load saved model
+  - `POST /api/portfolio/models/delete` - Delete model
+  - `GET /api/portfolio/models/list` - List all saved models
+- ✅ **UI - Saved Models Tab:**
+  - Shows DL and RL models in separate cards
+  - Load and Delete buttons for each model
+  - Model metadata (assets, params, training results)
+  - Save DL and Save RL buttons in Configuration tab
+- ✅ **Storage:** `/app/backend/saved_models/portfolio/`
+- ✅ **Jupyter Notebook:** `/app/backend/crypto_trading_system_demo.ipynb` for supervisor presentation
+
 ### Complete System Integration (Feb 3, 2026)
 - ✅ **Dashboard Integration:**
   - Optimal Allocation widget with pie chart showing AI-recommended portfolio
