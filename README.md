@@ -12,7 +12,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-[Features](#-features) • [Architecture](#-architecture) • [Installation](#-installation) • [Usage](#-usage) • [Documentation](#-documentation)
+[Features](#-features) • [Architecture](#-architecture) • [Installation](#-installation) • [Deployment](#-deployment) • [Documentation](#-documentation)
 
 ---
 
