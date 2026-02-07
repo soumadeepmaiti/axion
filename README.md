@@ -353,6 +353,32 @@ REACT_APP_BACKEND_URL=http://localhost:8001
 
 ---
 
+## 🌐 Deployment
+
+For detailed deployment instructions, see **[DEPLOYMENT.md](DEPLOYMENT.md)**
+
+### Quick Deploy Options
+
+| Platform | Command/Action |
+|----------|---------------|
+| **Docker** | `docker-compose up -d --build` |
+| **Railway** | Connect GitHub repo, auto-deploy |
+| **Render** | Connect GitHub repo, configure services |
+| **VPS** | See [VPS guide](DEPLOYMENT.md#option-4-vps) |
+
+### Docker Quick Start
+
+```bash
+# Clone and deploy
+git clone https://github.com/Soumadeep21/axion.git
+cd axion
+docker-compose up -d --build
+
+# Access at http://localhost
+```
+
+---
+
 ## 📖 Usage
 
 ### 1. Dashboard
